@@ -84,6 +84,7 @@ DB 접속: `docker compose exec postgres psql -U arise -d arise`
 - 레포: `deploy/` — compose 참고본·nginx conf(canonical: `arise-ai.conf` + 부속 사이트 `site-*.conf`)·부속 사이트 플레이스홀더(`sites/<name>/`)·검증 스크립트(`server-verify.sh`, `validate-stack.sh`, `smoke.mjs`)·self-signed placeholder 인증서(`certs/`, 로컬 검증용)
 
 ## 변경 이력
+- 2026-06-26: **내부망/IP 접속 지원을 위한 HTTP 우회 및 secure 쿠키 동적 설정 적용**. Nginx 설정(`arise-ai.conf`) 수정으로 도메인 접속 시에만 HTTPS 리다이렉트 처리하고, IP 직접 접속 시에는 HTTP 연결을 허용함. 동시에 백엔드(`admin.js`, `auth.js`)의 세션 쿠키 `secure` 플래그를 고정값이 아닌 실제 요청 프로토콜(HTTPS 여부)에 맞게 동적으로 체크하게 수정하여, 내부망 HTTP IP 접속 환경에서도 관리자 로그인 루프 없이 정상 접속 가능하도록 처리 완료.
 - 2026-06-18: **부속 AI 기관 사이트 서브도메인 호스팅** 추가 — 장영실 AI융합연구원(airc·axrc)·AI융합교육원(aiedu·axedu)·AI대학원(aigs·axgs). 같은 nginx·와일드카드 인증서로 도메인별 `site-*.conf`(80→443 + 정적 루트), compose에 `./sites` 마운트. 현재 "준비 중" 플레이스홀더. 프로덕션 적용·검증 완료(6개 도메인 200, arise-ai 무영향). 공개 접속은 DNS A레코드(전산팀) 필요. 동시에 레거시 `/arise.html`→`/` 301, compose를 실배포(미배포 redis/모니터링 제거)와 일치화. (커밋 a594ebe, 7d8f2ec)
 - 2026-06-17: 「학과 정보 수정 신청」 2차 — **공개 제출(로그인 제거)·디렉터리 진입 FAB·학과/세부전공 삭제 요청 기능** 라이브 배포. `dir_change_requests`에 `action`·`note` 컬럼 추가(부팅 시 `ALTER ... IF NOT EXISTS`로 기존 테이블 호환). 검증: was healthy·공개 제출 422 검증·삭제 사유 필수·FAB/문구 라이브 반영. (코드 커밋 114c99c)
 - 2026-06-17: 「학과 정보 수정 신청」 기능 **라이브 배포 완료**. 신규 페이지 `/dept-edit-request`(@pusan.ac.kr OAuth 게이트) + 관리자 "학과 수정 신청" 검토 탭(승인 시 디렉터리 자동 반영). DB `dir_change_requests` 테이블 추가(`initSchema` 자동 생성 — 무중단 was 재생성, postgres·nginx·DB볼륨 보존). 디렉터리 안내 문구 2곳 수정(대제목 하단·검색창 옆 칩). 검증: was healthy·문구 반영·제출/관리자 API 정상. (코드 커밋 e7361b6)

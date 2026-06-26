@@ -40,10 +40,11 @@ function issueJwt(user) {
 }
 
 function setAuthCookie(res, token) {
+  const isHttps = NODE_ENV() === 'production' && (res.req?.secure || res.req?.headers['x-forwarded-proto'] === 'https');
   res.cookie('token', token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: NODE_ENV() === 'production',
+    secure: isHttps,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }

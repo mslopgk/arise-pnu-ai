@@ -27,10 +27,11 @@ function issueAdminJwt(admin) {
 }
 
 function setAdminCookie(res, token) {
+  const isHttps = NODE_ENV() === 'production' && (res.req?.secure || res.req?.headers['x-forwarded-proto'] === 'https');
   res.cookie('admin_token', token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: NODE_ENV() === 'production',
+    secure: isHttps,
     maxAge: 2 * 60 * 60 * 1000,
   });
 }
