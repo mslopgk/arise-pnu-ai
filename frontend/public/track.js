@@ -85,7 +85,7 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('scroll', onScroll, { passive: true, capture: true }); // 내부 컨테이너(.view-scroll 등)
 
-    function settleActive() {
+    function settleActive() { // 체류 = 탭이 보이는 동안만 누적 (백그라운드 탭은 0)
       if (visibleSince != null) {
         activeMs += Date.now() - visibleSince;
         visibleSince = document.visibilityState === 'hidden' ? null : Date.now();

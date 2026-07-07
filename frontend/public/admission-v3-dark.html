@@ -2865,6 +2865,7 @@
     function openMajorModal(m, dept){
       var modal = $('casmModal'), body = $('casmBody'), dialog = $('casmDialog');
       if (!modal || !body || !m) return;
+      if(window.pnugTrack) window.pnugTrack('dept_detail', { meta: { dept: (dept && dept.name) || '', major: m.name } });
       lastFocus = document.activeElement;
       body.innerHTML = majorDetailHtml(m, dept);
       modal.hidden = false;
@@ -2876,6 +2877,7 @@
     function openModal(d, currentMajor){
       var modal = $('casmModal'), body = $('casmBody'), dialog = $('casmDialog');
       if (!modal || !body || !d) return;
+      if(window.pnugTrack) window.pnugTrack('dept_detail', { meta: { dept: d.name } });
       lastFocus = document.activeElement;
       body.innerHTML = detailHtml(d, currentMajor || '');
       modal.hidden = false;
@@ -3169,13 +3171,15 @@
   function openApplyModal(){ if(!modal) return; modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); document.body.style.overflow = 'hidden'; }
   function closeModal(){ if(!modal) return; modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }
   function openApply(){
+    if(window.pnugTrack) window.pnugTrack('apply_click');
     fetch('/auth/me', { credentials:'include' }).then(function(meRes){
-      if(meRes.status === 401){ window.location.href = '/auth/google?returnTo=' + encodeURIComponent(window.location.pathname + (location.hash || '') + '?modal=apply'); return Promise.reject('redirect'); }
+      if(meRes.status === 401){ if(window.pnugTrack) window.pnugTrack('oauth_redirect'); window.location.href = '/auth/google?returnTo=' + encodeURIComponent(window.location.pathname + (location.hash || '') + '?modal=apply'); return Promise.reject('redirect'); }
       if(!meRes.ok){ showToast('⚠ 사용자 정보를 불러올 수 없습니다.'); return Promise.reject('me'); }
       return fetch('/api/surveys/1/my-response', { credentials:'include' });
     }).then(function(myRes){
       if(myRes && myRes.status === 200){ showToast('이미 희망 제출을 완료하셨습니다.'); return; }
       renderPicks(); openApplyModal();
+      if(window.pnugTrack) window.pnugTrack('apply_modal_open');
     }).catch(function(err){ if(err !== 'redirect' && err !== 'me') showToast('⚠ 네트워크 오류. 잠시 후 다시 시도해주세요.'); });
   }
   if(modal){
@@ -3218,15 +3222,16 @@
     }).then(function(res){
       if(!res) return;
       if(res.status === 201){
+        if(window.pnugTrack) window.pnugTrack('apply_submit', { meta: { status: 'success' } });
         showToast('희망 제출이 완료되었습니다');
         document.body.style.overflow = '';
         closeModal();
         applyForm.reset();
         picks = [];
         renderPicks();
-      } else if(res.status === 409){ showToast('이미 희망 제출을 완료하셨습니다.'); }
-      else if(res.status === 401){ window.location.href = '/auth/google?returnTo=' + encodeURIComponent(window.location.pathname + '?modal=apply'); }
-      else { res.json().then(function(d){ showToast('⚠ 제출 실패: ' + (d.error || res.status)); }).catch(function(){ showToast('⚠ 제출 실패: ' + res.status); }); }
+      } else if(res.status === 409){ if(window.pnugTrack) window.pnugTrack('apply_submit', { meta: { status: 'dup' } }); showToast('이미 희망 제출을 완료하셨습니다.'); }
+      else if(res.status === 401){ if(window.pnugTrack) window.pnugTrack('oauth_redirect'); window.location.href = '/auth/google?returnTo=' + encodeURIComponent(window.location.pathname + '?modal=apply'); }
+      else { if(window.pnugTrack) window.pnugTrack('apply_submit', { meta: { status: 'error' } }); res.json().then(function(d){ showToast('⚠ 제출 실패: ' + (d.error || res.status)); }).catch(function(){ showToast('⚠ 제출 실패: ' + res.status); }); }
     }).catch(function(err){ if(err !== 'redirect' && err !== 'survey' && err !== 'q') showToast('⚠ 네트워크 오류. 잠시 후 다시 시도해주세요.'); });
   });
 
@@ -3259,6 +3264,7 @@
     // '펼침' 아코디언을, 뷰가 표시된 뒤 실제 높이로 재계산
     el.querySelectorAll('.qitem.open .qpane').forEach(function(p){ p.style.maxHeight = p.scrollHeight + 'px'; });
     currentView = key;
+    if(window.pnugTrack) window.pnugTrack('pageview', { view: key });
     if(location.hash.slice(1) !== key) location.hash = key;
     if(!inited[key]){
       inited[key] = true;
@@ -3273,6 +3279,7 @@
     if(intro) intro.style.display = '';
     setIntroVideo(true);
     currentView = null;
+    if(window.pnugTrack) window.pnugTrack('pageview', { view: 'intro' });
     if(location.hash) history.replaceState(null, '', location.pathname + location.search);
   }
   function routeFromHash(){

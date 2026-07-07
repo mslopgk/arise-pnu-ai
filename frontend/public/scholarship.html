@@ -267,6 +267,7 @@
       {name:'③ BK21 Bridge 장학금', r:judgeBK(lastSem, nextGrad)},
       {name:'④ 연구지원장려금', r:judgeResearch()}
     ];
+    if(window.pnugTrack) window.pnugTrack('calc_run'); /* 실행 카운트만 — 입력값·판정결과 미전송 */
     render(items);
   });
 

@@ -388,6 +388,7 @@
     else if(imminent && gpa<3.0) tier='fail';
     else tier='maybe';
 
+    if(window.pnugTrack) window.pnugTrack('calc_run'); /* 실행 카운트만 — 입력값·판정결과 미전송 */
     render(tier, checks, basisSrc, {over8:over8, reg8:gradSemRaw==='8'});
   });
 
