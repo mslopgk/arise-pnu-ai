@@ -89,10 +89,8 @@ export default function AdminAnalytics() {
       {rangeRow}
 
       <div style={st.notice}>
-        ⚠ <b>데이터 범위 안내</b> — <b>페이지뷰 · 순방문자 · 세션 · 일별 추이</b>는 {BACKFILL_FROM}부터
-        집계됩니다(기능 도입 전 구간은 서버 로그에서 복원). 그 외 지표 —
-        <b> 스크롤 깊이 · 평균 체류 · 이탈률 · 신청 퍼널 · 내부 뷰 도달 · 학과 상세 조회 · 계산기 사용</b> —
-        는 기능을 도입한 <b>{LIVE_FROM}부터</b>의 실측 통계입니다.
+        <div>⚠ <b>페이지뷰 · 순방문자 · 세션 · 일별 추이</b> — {BACKFILL_FROM}부터 (도입 전 구간은 서버 로그에서 복원)</div>
+        <div style={{ marginTop: 4 }}>⚠ <b>나머지 지표</b>(스크롤 깊이 · 체류 · 이탈률 · 퍼널 · 뷰 도달 · 학과 조회 · 계산기) — 기능 도입일 <b>{LIVE_FROM}부터</b> 실측</div>
       </div>
 
       <div style={st.grid4}>
