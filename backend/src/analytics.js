@@ -84,3 +84,152 @@ export function timeRange(q) {
   }
   return { where: cond.length ? 'AND ' + cond.join(' AND ') : '', params };
 }
+
+// ═══ 수집 엔드포인트 (공개 — 인증 없음, 항상 204) ═══
+const limiter = createRateLimiter();
+setInterval(() => limiter.sweep(), 10 * 60 * 1000).unref();
+
+export const trackRouter = express.Router();
+trackRouter.post('/', async (req, res) => {
+  try {
+    const ua = req.headers['user-agent'];
+    if (!isBotUa(ua) && limiter.allow(req.ip)) {
+      const rows = normalizeBatch(req.body);
+      if (rows && rows.length) {
+        const device = deviceOf(ua);
+        const params = [];
+        const tuples = rows.map((r) => {
+          params.push(req.body.vid, req.body.sid, r.event, r.page, r.view, r.referrer, r.scroll_pct, r.dwell_ms, device, r.meta ? JSON.stringify(r.meta) : null);
+          return '(?,?,?,?,?,?,?,?,?,?::jsonb)';
+        });
+        await db.prepare(
+          `INSERT INTO analytics_events (visitor_id,session_id,event,page,view,referrer,scroll_pct,dwell_ms,device,meta) VALUES ${tuples.join(',')}`
+        ).run(...params);
+      }
+    }
+  } catch (e) {
+    console.error('[track] failed:', e.message);
+  }
+  res.status(204).end(); // 드롭이어도 204 — 클라이언트 재시도 폭주 방지
+});
+
+// ═══ 집계 (관리자 전용) ═══
+export const adminAnalyticsRouter = express.Router();
+
+adminAnalyticsRouter.get('/overview', requireAdmin, async (req, res) => {
+  try {
+    const { where, params } = timeRange(req.query);
+    const totals = await db.prepare(`
+      SELECT COUNT(*) FILTER (WHERE event = 'pageview')::int AS pageviews,
+             COUNT(DISTINCT visitor_id)::int AS visitors,
+             COUNT(DISTINCT session_id)::int AS sessions
+      FROM analytics_events WHERE TRUE ${where}`).get(...params);
+
+    const pages = await db.prepare(`
+      SELECT page,
+             COUNT(*) FILTER (WHERE event = 'pageview')::int AS pageviews,
+             COUNT(DISTINCT visitor_id)::int AS visitors,
+             COUNT(DISTINCT session_id)::int AS sessions
+      FROM analytics_events WHERE TRUE ${where}
+      GROUP BY page ORDER BY pageviews DESC`).all(...params);
+
+    // 세션별 최대값(반복 page_leave 스냅샷 중 최종치)을 페이지 단위로 평균
+    const depth = await db.prepare(`
+      SELECT page,
+             ROUND(AVG(dwell))::int AS avg_dwell_ms,
+             ROUND(AVG(scroll))::int AS avg_scroll_pct,
+             COUNT(*)::int AS measured,
+             COUNT(*) FILTER (WHERE scroll >= 25)::int AS s25,
+             COUNT(*) FILTER (WHERE scroll >= 50)::int AS s50,
+             COUNT(*) FILTER (WHERE scroll >= 75)::int AS s75,
+             COUNT(*) FILTER (WHERE scroll >= 90)::int AS s90
+      FROM (SELECT session_id, page, MAX(dwell_ms) AS dwell, MAX(scroll_pct) AS scroll
+            FROM analytics_events WHERE event = 'page_leave' ${where}
+            GROUP BY session_id, page) t
+      GROUP BY page`).all(...params);
+
+    // 이탈 = 세션의 마지막 이벤트가 그 페이지에서 발생
+    const exits = await db.prepare(`
+      SELECT page, COUNT(*)::int AS exit_sessions FROM (
+        SELECT DISTINCT ON (session_id) session_id, page
+        FROM analytics_events WHERE TRUE ${where}
+        ORDER BY session_id, occurred_at DESC, id DESC) t
+      GROUP BY page`).all(...params);
+
+    const daily = await db.prepare(`
+      SELECT to_char(occurred_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD') AS day,
+             COUNT(*) FILTER (WHERE event = 'pageview')::int AS pageviews,
+             COUNT(DISTINCT session_id)::int AS sessions,
+             COUNT(DISTINCT visitor_id)::int AS visitors
+      FROM analytics_events WHERE TRUE ${where}
+      GROUP BY day ORDER BY day`).all(...params);
+
+    const depthBy = Object.fromEntries(depth.map((d) => [d.page, d]));
+    const exitBy = Object.fromEntries(exits.map((x) => [x.page, x.exit_sessions]));
+    res.json({
+      totals,
+      pages: pages.map((p) => ({
+        ...p,
+        avg_dwell_ms: depthBy[p.page]?.avg_dwell_ms ?? null,
+        avg_scroll_pct: depthBy[p.page]?.avg_scroll_pct ?? null,
+        measured: depthBy[p.page]?.measured ?? 0,
+        s25: depthBy[p.page]?.s25 ?? 0,
+        s50: depthBy[p.page]?.s50 ?? 0,
+        s75: depthBy[p.page]?.s75 ?? 0,
+        s90: depthBy[p.page]?.s90 ?? 0,
+        exit_sessions: exitBy[p.page] ?? 0,
+        exit_rate: p.sessions > 0 ? Math.round(((exitBy[p.page] ?? 0) / p.sessions) * 100) : null,
+      })),
+      daily,
+      generated_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[analytics overview]', e.message);
+    res.status(500).json({ error: 'internal' });
+  }
+});
+
+adminAnalyticsRouter.get('/funnel', requireAdmin, async (req, res) => {
+  try {
+    const { where, params } = timeRange(req.query);
+    const funnel = await db.prepare(`
+      SELECT
+        COUNT(DISTINCT session_id) FILTER (WHERE page = 'gateway' AND event = 'pageview')::int AS gateway,
+        COUNT(DISTINCT session_id) FILTER (WHERE page = 'admission' AND event = 'pageview')::int AS admission,
+        COUNT(DISTINCT session_id) FILTER (WHERE page = 'admission' AND event = 'pageview' AND view IS NOT NULL AND view <> 'intro')::int AS engaged,
+        COUNT(DISTINCT session_id) FILTER (WHERE event = 'calc_run')::int AS calc_run,
+        COUNT(DISTINCT session_id) FILTER (WHERE event = 'apply_click')::int AS apply_click,
+        COUNT(DISTINCT session_id) FILTER (WHERE event = 'oauth_redirect')::int AS oauth_redirect,
+        COUNT(DISTINCT session_id) FILTER (WHERE event = 'apply_modal_open')::int AS modal_open,
+        COUNT(DISTINCT session_id) FILTER (WHERE event = 'apply_submit' AND meta->>'status' = 'success')::int AS submit_success
+      FROM analytics_events WHERE TRUE ${where}`).get(...params);
+
+    const admissionViews = await db.prepare(`
+      SELECT view, COUNT(DISTINCT session_id)::int AS sessions, COUNT(*)::int AS pageviews
+      FROM analytics_events
+      WHERE page = 'admission' AND event = 'pageview' AND view IS NOT NULL ${where}
+      GROUP BY view`).all(...params);
+
+    const deptInterest = await db.prepare(`
+      SELECT meta->>'dept' AS dept, COUNT(*)::int AS count
+      FROM analytics_events WHERE event = 'dept_detail' ${where}
+      GROUP BY dept ORDER BY count DESC LIMIT 10`).all(...params);
+
+    // 최종 전환 실측치 — responses 테이블(submitted_at 기준 동일 기간)
+    const respWhere = where.split('occurred_at').join('submitted_at');
+    const actual = await db.prepare(
+      `SELECT COUNT(*)::int AS c FROM responses WHERE survey_id = 1 ${respWhere}`
+    ).get(...params);
+
+    res.json({
+      funnel,
+      admission_views: admissionViews,
+      dept_interest: deptInterest,
+      responses_actual: actual.c,
+      generated_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[analytics funnel]', e.message);
+    res.status(500).json({ error: 'internal' });
+  }
+});

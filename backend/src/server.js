@@ -11,6 +11,7 @@ import authRouter from './auth.js';
 import surveysRouter from './surveys.js';
 import adminRouter from './admin.js';
 import dirRequestsRouter from './dir-requests.js';
+import { trackRouter, adminAnalyticsRouter } from './analytics.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -58,7 +59,9 @@ app.use((req, res, next) => {
 
 // === API Routes ===
 app.use('/auth', authRouter);
+app.use('/api/track', trackRouter);
 app.use('/api/surveys', surveysRouter);
+app.use('/api/admin/analytics', adminAnalyticsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/dir-change-requests', dirRequestsRouter);
 
