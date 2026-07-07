@@ -17,6 +17,8 @@ const FUNNEL_STEPS = [
   ['submit_success', '제출 완료'],
 ];
 const APPLY_WINDOW = { from: '2026-07-09', to: '2026-07-16' }; // 접수기간
+const BACKFILL_FROM = '2026.6.18'; // 서버 로그 복원 시작일
+const LIVE_FROM = '2026.7.7';      // 방문 분석 기능 도입(실측 시작)일
 const RANGES = [
   { key: 'today', label: '오늘', query: () => ({ from: kstToday(), to: kstToday() }) },
   { key: '7d', label: '최근 7일', query: () => ({ from: kstToday(-6), to: kstToday() }) },
@@ -86,6 +88,13 @@ export default function AdminAnalytics() {
     <>
       {rangeRow}
 
+      <div style={st.notice}>
+        ⚠ <b>데이터 범위 안내</b> — <b>페이지뷰 · 순방문자 · 세션 · 일별 추이</b>는 {BACKFILL_FROM}부터
+        집계됩니다(기능 도입 전 구간은 서버 로그에서 복원). 그 외 지표 —
+        <b> 스크롤 깊이 · 평균 체류 · 이탈률 · 신청 퍼널 · 내부 뷰 도달 · 학과 상세 조회 · 계산기 사용</b> —
+        는 기능을 도입한 <b>{LIVE_FROM}부터</b>의 실측 통계입니다.
+      </div>
+
       <div style={st.grid4}>
         <Stat label="페이지뷰" value={overview.totals.pageviews} />
         <Stat label="순방문자" value={overview.totals.visitors} />
@@ -121,7 +130,6 @@ export default function AdminAnalytics() {
             <div style={st.funnelNote}>
               OAuth 로그인 이동 {funnel.funnel.oauth_redirect} 세션 · 자격/장학 계산기 사용 {funnel.funnel.calc_run} 세션.
               신청 클릭 후 로그인 화면에서 돌아오지 않은 세션은 "신청 클릭"과 "신청 모달 오픈" 사이의 이탈로 나타납니다.
-              (서버 로그에서 백필한 2026.6.18~7.7 세션은 클릭 계측이 없어 퍼널 계산에서 제외 — 페이지별 표·일별 추이에는 포함)
             </div>
           </>
         )}
@@ -236,6 +244,7 @@ function Empty() { return <div style={{ padding: 24, textAlign: 'center', color:
 
 const st = {
   error: { background: '#3a1c1c', border: '1px solid #5a2a2a', color: '#ff8a8a', padding: 12, borderRadius: 8, marginBottom: 16 },
+  notice: { background: '#2f2810', border: '1px solid #5a4a1c', color: '#ffd76e', padding: '12px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, lineHeight: 1.7 },
   rangeRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
   rangeBtn: { background: 'transparent', color: '#aaa', border: '1px solid #2a2d38', padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   rangeBtnActive: { background: '#23262f', color: '#fff', border: '1px solid #3a3d48' },

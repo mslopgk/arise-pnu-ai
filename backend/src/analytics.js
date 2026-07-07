@@ -139,7 +139,8 @@ adminAnalyticsRouter.get('/overview', requireAdmin, async (req, res) => {
       SELECT page,
              COUNT(*) FILTER (WHERE event = 'pageview')::int AS pageviews,
              COUNT(DISTINCT visitor_id)::int AS visitors,
-             COUNT(DISTINCT session_id)::int AS sessions
+             COUNT(DISTINCT session_id)::int AS sessions,
+             COUNT(DISTINCT session_id) FILTER (WHERE (meta->>'bf') IS NULL)::int AS live_sessions
       FROM analytics_events WHERE TRUE ${where}
       GROUP BY page ORDER BY pageviews DESC`).all(...params),
 
@@ -162,11 +163,12 @@ adminAnalyticsRouter.get('/overview', requireAdmin, async (req, res) => {
             GROUP BY session_id, page) t
       GROUP BY page`).all(...params),
 
-      // 이탈 = 세션의 마지막 이벤트가 그 페이지에서 발생
+      // 이탈 = 세션의 마지막 이벤트가 그 페이지에서 발생.
+      // 로그 백필 세션은 일자 단위 근사라 제외 — 이탈률은 실측(기능 도입 이후) 세션만으로 계산.
       db.prepare(`
       SELECT page, COUNT(*)::int AS exit_sessions FROM (
         SELECT DISTINCT ON (session_id) session_id, page
-        FROM analytics_events WHERE TRUE ${where}
+        FROM analytics_events WHERE (meta->>'bf') IS NULL ${where}
         ORDER BY session_id, occurred_at DESC, id DESC) t
       GROUP BY page`).all(...params),
 
@@ -193,7 +195,7 @@ adminAnalyticsRouter.get('/overview', requireAdmin, async (req, res) => {
         s75: depthBy[p.page]?.s75 ?? 0,
         s90: depthBy[p.page]?.s90 ?? 0,
         exit_sessions: exitBy[p.page] ?? 0,
-        exit_rate: p.sessions > 0 ? Math.round(((exitBy[p.page] ?? 0) / p.sessions) * 100) : null,
+        exit_rate: p.live_sessions > 0 ? Math.round(((exitBy[p.page] ?? 0) / p.live_sessions) * 100) : null,
       })),
       daily,
       generated_at: new Date().toISOString(),
