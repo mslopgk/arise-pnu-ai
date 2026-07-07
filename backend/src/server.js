@@ -11,7 +11,7 @@ import authRouter from './auth.js';
 import surveysRouter from './surveys.js';
 import adminRouter from './admin.js';
 import dirRequestsRouter from './dir-requests.js';
-import { trackRouter, adminAnalyticsRouter } from './analytics.js';
+import { trackRouter, adminAnalyticsRouter, trackGuard } from './analytics.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +30,9 @@ const isDev = !isProd;
 // HTTPS proxy(Cloudflare Tunnel / nginx) 뒤에 있을 때 X-Forwarded-Proto 신뢰
 app.set('trust proxy', 1);
 
+// /api/track(공개 수집)은 8mb 전역 파서에 닿기 전에 봇·rate limit 차단 + 소용량 파서로 제한.
+// (아래 전역 파서는 이미 파싱된 본문을 건너뜀)
+app.use('/api/track', trackGuard, express.json({ limit: '64kb' }));
 app.use(express.json({ limit: '8mb' })); // 이미지 base64 업로드 허용
 app.use(cookieParser());
 

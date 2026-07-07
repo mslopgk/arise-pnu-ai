@@ -16,9 +16,12 @@ const FUNNEL_STEPS = [
   ['modal_open', '신청 모달 오픈'],
   ['submit_success', '제출 완료'],
 ];
+const APPLY_WINDOW = { from: '2026-07-09', to: '2026-07-16' }; // 접수기간
 const RANGES = [
-  { key: 'today', label: '오늘' }, { key: '7d', label: '최근 7일' },
-  { key: 'window', label: '접수기간 7.9~7.16' }, { key: 'all', label: '전체' },
+  { key: 'today', label: '오늘', query: () => ({ from: kstToday(), to: kstToday() }) },
+  { key: '7d', label: '최근 7일', query: () => ({ from: kstToday(-6), to: kstToday() }) },
+  { key: 'window', label: `접수기간 ${APPLY_WINDOW.from.slice(5).replace('-', '.')}~${APPLY_WINDOW.to.slice(5).replace('-', '.')}`, query: () => APPLY_WINDOW },
+  { key: 'all', label: '전체', query: () => ({}) },
 ];
 
 function kstToday(offsetDays = 0) {
@@ -27,10 +30,8 @@ function kstToday(offsetDays = 0) {
   return d.toISOString().slice(0, 10);
 }
 function rangeQuery(key) {
-  if (key === 'today') return { from: kstToday(), to: kstToday() };
-  if (key === '7d') return { from: kstToday(-6), to: kstToday() };
-  if (key === 'window') return { from: '2026-07-09', to: '2026-07-16' };
-  return {};
+  const r = RANGES.find((x) => x.key === key);
+  return r ? r.query() : {};
 }
 function fmtDwell(ms) {
   if (ms == null) return '—';

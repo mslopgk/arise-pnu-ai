@@ -3201,7 +3201,7 @@
     if(!picks.length){ showToast('⚠ 1지망 학과를 담아주세요.'); return; }
 
     fetch('/api/surveys/1', { credentials:'include' }).then(function(sRes){
-      if(sRes.status === 401){ window.location.href = '/auth/google?returnTo=' + encodeURIComponent(window.location.pathname + '?modal=apply'); return Promise.reject('redirect'); }
+      if(sRes.status === 401){ if(window.pnugTrack) window.pnugTrack('oauth_redirect'); window.location.href = '/auth/google?returnTo=' + encodeURIComponent(window.location.pathname + '?modal=apply'); return Promise.reject('redirect'); }
       if(!sRes.ok){ showToast('⚠ 설문 정보를 불러올 수 없습니다.'); return Promise.reject('survey'); }
       return sRes.json();
     }).then(function(survey){

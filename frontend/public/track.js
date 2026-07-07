@@ -33,15 +33,20 @@
         return (c === 'x' ? r : (r & 3) | 8).toString(16);
       });
     }
+    function safeStorage(kind) {
+      // 'Block all cookies' 등에서는 window.localStorage 접근 자체가 SecurityError
+      try { return window[kind]; } catch (e) { return null; }
+    }
     function stored(store, key) {
       try {
+        if (!store) return uuid();
         var v = store.getItem(key);
         if (!v) { v = uuid(); store.setItem(key, v); }
         return v;
       } catch (e) { return uuid(); }
     }
-    var vid = stored(window.localStorage, 'pnug_vid');
-    var sid = stored(window.sessionStorage, 'pnug_sid');
+    var vid = stored(safeStorage('localStorage'), 'pnug_vid');
+    var sid = stored(safeStorage('sessionStorage'), 'pnug_sid');
 
     /* ── 전송 큐 (sendBeacon 우선, fetch keepalive 폴백) ── */
     var queue = [];
@@ -77,13 +82,27 @@
       return Math.max(0, Math.min(100, Math.round(((st + ch) / sh) * 100)));
     }
     function activeScroller() { return document.querySelector('.view.is-open .view-scroll'); }
-    function onScroll(e) {
-      var t = e && e.target;
-      var pct = scrollPctOf(t && t !== document && t !== window && t.scrollHeight ? t : null);
+    var scrollPending = false;
+    function measureScroll(el) {
+      var pct = scrollPctOf(el);
       if (pct > maxScroll) maxScroll = pct;
     }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.addEventListener('scroll', onScroll, { passive: true, capture: true }); // 내부 컨테이너(.view-scroll 등)
+    function onScroll(e) {
+      var t = e && e.target;
+      var el = null;
+      if (t && t !== document && t !== window) {
+        // 페이지 대표 스크롤러(.view-scroll)만 측정 — 모달·내부 리스트 스크롤은 깊이에서 제외
+        if (!(t.classList && t.classList.contains('view-scroll'))) return;
+        el = t;
+      }
+      if (scrollPending) return;
+      scrollPending = true;
+      if (window.requestAnimationFrame) {
+        requestAnimationFrame(function () { scrollPending = false; measureScroll(el); });
+      } else { scrollPending = false; measureScroll(el); }
+    }
+    // 캡처 단계 리스너 하나로 뷰포트 스크롤(target=document)과 내부 .view-scroll 둘 다 수신
+    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
 
     function settleActive() { // 체류 = 탭이 보이는 동안만 누적 (백그라운드 탭은 0)
       if (visibleSince != null) {
@@ -91,7 +110,7 @@
         visibleSince = document.visibilityState === 'hidden' ? null : Date.now();
       }
     }
-    function leaveSnapshot() { // 누적 스냅샷 — 서버는 세션별 MAX를 취함
+    function leaveSnapshot() { // (page,view) 단위 누적 스냅샷 — 서버는 뷰별 MAX 후 체류는 뷰 합산
       if (!cur) return;
       settleActive();
       push({ e: 'page_leave', page: cur.page, view: cur.view, scroll: maxScroll, dwell: Math.round(activeMs) });
@@ -117,7 +136,12 @@
     window.pnugTrack = function (name, fields) {
       try {
         var page = pageKey();
-        if (!page) return;
+        if (!page) { // 미추적 경로(/admin 등) 진입 — 직전 페이지 체류를 마감하고 측정 중단
+          leaveSnapshot();
+          cur = null;
+          lastKey = null;
+          return;
+        }
         fields = fields || {};
         if (name === 'pageview') {
           var view = null;
@@ -146,6 +170,10 @@
       else visibleSince = Date.now();
     });
     window.addEventListener('pagehide', function () { leaveSnapshot(); cur = null; flush(); });
+    // bfcache 복원(모바일 뒤로가기) — pagehide로 비운 상태를 새 방문으로 재개
+    window.addEventListener('pageshow', function (e) {
+      if (e && e.persisted) { lastKey = null; window.pnugTrack('pageview', {}); }
+    });
 
     /* ── 초기 pageview + 해시 뒤로가기 대응 ── */
     window.pnugTrack('pageview', {});

@@ -67,45 +67,54 @@ export function createRateLimiter({ capacity = 60, refillPerSec = 1 } = {}) {
   };
 }
 
-// 관리자 집계용 기간 필터 (KST 날짜, to 포함). 형식 불량은 무시(전체 조회).
+// 관리자 집계용 기간 필터 (KST 날짜, to 포함). 형식·달력 불량은 무시(전체 조회).
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-export function timeRange(q) {
+function calendarDate(s) { // '2026-13-01'·'2026-02-30' 같은 롤오버/무효 날짜 거부
+  if (typeof s !== 'string' || !DATE_RE.test(s)) return null;
+  const d = new Date(s + 'T00:00:00Z');
+  return !isNaN(d) && d.toISOString().slice(0, 10) === s ? d : null;
+}
+export function timeRange(q, column = 'occurred_at') {
   const cond = [];
   const params = [];
-  if (q && typeof q.from === 'string' && DATE_RE.test(q.from)) {
-    cond.push('occurred_at >= ?::timestamptz');
+  if (q && calendarDate(q.from)) {
+    cond.push(`${column} >= ?::timestamptz`);
     params.push(q.from + 'T00:00:00+09:00');
   }
-  if (q && typeof q.to === 'string' && DATE_RE.test(q.to)) {
-    const d = new Date(q.to + 'T00:00:00Z');
-    d.setUTCDate(d.getUTCDate() + 1);
-    cond.push('occurred_at < ?::timestamptz');
-    params.push(d.toISOString().slice(0, 10) + 'T00:00:00+09:00');
+  const dt = q && calendarDate(q.to);
+  if (dt) {
+    dt.setUTCDate(dt.getUTCDate() + 1);
+    cond.push(`${column} < ?::timestamptz`);
+    params.push(dt.toISOString().slice(0, 10) + 'T00:00:00+09:00');
   }
   return { where: cond.length ? 'AND ' + cond.join(' AND ') : '', params };
 }
 
 // ═══ 수집 엔드포인트 (공개 — 인증 없음, 항상 204) ═══
-const limiter = createRateLimiter();
+// 캠퍼스 NAT 뒤 다수 사용자가 한 IP를 공유하므로 여유 있게 (사용자당 플러시 ~1회/10초)
+const limiter = createRateLimiter({ capacity: 400, refillPerSec: 20 });
 setInterval(() => limiter.sweep(), 10 * 60 * 1000).unref();
+
+// 본문 파싱 전에 봇·rate limit 차단 — server.js에서 /api/track 전용 소용량 파서 앞에 마운트
+export function trackGuard(req, res, next) {
+  if (isBotUa(req.headers['user-agent']) || !limiter.allow(req.ip)) return res.status(204).end();
+  next();
+}
 
 export const trackRouter = express.Router();
 trackRouter.post('/', async (req, res) => {
   try {
-    const ua = req.headers['user-agent'];
-    if (!isBotUa(ua) && limiter.allow(req.ip)) {
-      const rows = normalizeBatch(req.body);
-      if (rows && rows.length) {
-        const device = deviceOf(ua);
-        const params = [];
-        const tuples = rows.map((r) => {
-          params.push(req.body.vid, req.body.sid, r.event, r.page, r.view, r.referrer, r.scroll_pct, r.dwell_ms, device, r.meta ? JSON.stringify(r.meta) : null);
-          return '(?,?,?,?,?,?,?,?,?,?::jsonb)';
-        });
-        await db.prepare(
-          `INSERT INTO analytics_events (visitor_id,session_id,event,page,view,referrer,scroll_pct,dwell_ms,device,meta) VALUES ${tuples.join(',')}`
-        ).run(...params);
-      }
+    const rows = normalizeBatch(req.body);
+    if (rows && rows.length) {
+      const device = deviceOf(req.headers['user-agent']);
+      const params = [];
+      const tuples = rows.map((r) => {
+        params.push(req.body.vid, req.body.sid, r.event, r.page, r.view, r.referrer, r.scroll_pct, r.dwell_ms, device, r.meta ? JSON.stringify(r.meta) : null);
+        return '(?,?,?,?,?,?,?,?,?,?::jsonb)';
+      });
+      await db.prepare(
+        `INSERT INTO analytics_events (visitor_id,session_id,event,page,view,referrer,scroll_pct,dwell_ms,device,meta) VALUES ${tuples.join(',')}`
+      ).run(...params);
     }
   } catch (e) {
     console.error('[track] failed:', e.message);
@@ -119,22 +128,24 @@ export const adminAnalyticsRouter = express.Router();
 adminAnalyticsRouter.get('/overview', requireAdmin, async (req, res) => {
   try {
     const { where, params } = timeRange(req.query);
-    const totals = await db.prepare(`
+    const [totals, pages, depth, exits, daily] = await Promise.all([
+      db.prepare(`
       SELECT COUNT(*) FILTER (WHERE event = 'pageview')::int AS pageviews,
              COUNT(DISTINCT visitor_id)::int AS visitors,
              COUNT(DISTINCT session_id)::int AS sessions
-      FROM analytics_events WHERE TRUE ${where}`).get(...params);
+      FROM analytics_events WHERE TRUE ${where}`).get(...params),
 
-    const pages = await db.prepare(`
+      db.prepare(`
       SELECT page,
              COUNT(*) FILTER (WHERE event = 'pageview')::int AS pageviews,
              COUNT(DISTINCT visitor_id)::int AS visitors,
              COUNT(DISTINCT session_id)::int AS sessions
       FROM analytics_events WHERE TRUE ${where}
-      GROUP BY page ORDER BY pageviews DESC`).all(...params);
+      GROUP BY page ORDER BY pageviews DESC`).all(...params),
 
-    // 세션별 최대값(반복 page_leave 스냅샷 중 최종치)을 페이지 단위로 평균
-    const depth = await db.prepare(`
+      // page_leave는 (page,view) 단위 누적 스냅샷 — 뷰별 MAX(최종치)를 구한 뒤
+      // 체류는 뷰 합산, 스크롤은 뷰 중 최대를 세션·페이지 값으로 쓴다
+      db.prepare(`
       SELECT page,
              ROUND(AVG(dwell))::int AS avg_dwell_ms,
              ROUND(AVG(scroll))::int AS avg_scroll_pct,
@@ -143,26 +154,30 @@ adminAnalyticsRouter.get('/overview', requireAdmin, async (req, res) => {
              COUNT(*) FILTER (WHERE scroll >= 50)::int AS s50,
              COUNT(*) FILTER (WHERE scroll >= 75)::int AS s75,
              COUNT(*) FILTER (WHERE scroll >= 90)::int AS s90
-      FROM (SELECT session_id, page, MAX(dwell_ms) AS dwell, MAX(scroll_pct) AS scroll
-            FROM analytics_events WHERE event = 'page_leave' ${where}
+      FROM (SELECT session_id, page, SUM(dwell) AS dwell, MAX(scroll) AS scroll
+            FROM (SELECT session_id, page, COALESCE(view, '') AS view_key,
+                         MAX(dwell_ms) AS dwell, MAX(scroll_pct) AS scroll
+                  FROM analytics_events WHERE event = 'page_leave' ${where}
+                  GROUP BY session_id, page, COALESCE(view, '')) s
             GROUP BY session_id, page) t
-      GROUP BY page`).all(...params);
+      GROUP BY page`).all(...params),
 
-    // 이탈 = 세션의 마지막 이벤트가 그 페이지에서 발생
-    const exits = await db.prepare(`
+      // 이탈 = 세션의 마지막 이벤트가 그 페이지에서 발생
+      db.prepare(`
       SELECT page, COUNT(*)::int AS exit_sessions FROM (
         SELECT DISTINCT ON (session_id) session_id, page
         FROM analytics_events WHERE TRUE ${where}
         ORDER BY session_id, occurred_at DESC, id DESC) t
-      GROUP BY page`).all(...params);
+      GROUP BY page`).all(...params),
 
-    const daily = await db.prepare(`
+      db.prepare(`
       SELECT to_char(occurred_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD') AS day,
              COUNT(*) FILTER (WHERE event = 'pageview')::int AS pageviews,
              COUNT(DISTINCT session_id)::int AS sessions,
              COUNT(DISTINCT visitor_id)::int AS visitors
       FROM analytics_events WHERE TRUE ${where}
-      GROUP BY day ORDER BY day`).all(...params);
+      GROUP BY day ORDER BY day`).all(...params),
+    ]);
 
     const depthBy = Object.fromEntries(depth.map((d) => [d.page, d]));
     const exitBy = Object.fromEntries(exits.map((x) => [x.page, x.exit_sessions]));
@@ -192,7 +207,9 @@ adminAnalyticsRouter.get('/overview', requireAdmin, async (req, res) => {
 adminAnalyticsRouter.get('/funnel', requireAdmin, async (req, res) => {
   try {
     const { where, params } = timeRange(req.query);
-    const funnel = await db.prepare(`
+    const resp = timeRange(req.query, 'submitted_at'); // responses 테이블용 동일 기간
+    const [funnel, admissionViews, deptInterest, actual] = await Promise.all([
+      db.prepare(`
       SELECT
         COUNT(DISTINCT session_id) FILTER (WHERE page = 'gateway' AND event = 'pageview')::int AS gateway,
         COUNT(DISTINCT session_id) FILTER (WHERE page = 'admission' AND event = 'pageview')::int AS admission,
@@ -202,24 +219,24 @@ adminAnalyticsRouter.get('/funnel', requireAdmin, async (req, res) => {
         COUNT(DISTINCT session_id) FILTER (WHERE event = 'oauth_redirect')::int AS oauth_redirect,
         COUNT(DISTINCT session_id) FILTER (WHERE event = 'apply_modal_open')::int AS modal_open,
         COUNT(DISTINCT session_id) FILTER (WHERE event = 'apply_submit' AND meta->>'status' = 'success')::int AS submit_success
-      FROM analytics_events WHERE TRUE ${where}`).get(...params);
+      FROM analytics_events WHERE TRUE ${where}`).get(...params),
 
-    const admissionViews = await db.prepare(`
+      db.prepare(`
       SELECT view, COUNT(DISTINCT session_id)::int AS sessions, COUNT(*)::int AS pageviews
       FROM analytics_events
       WHERE page = 'admission' AND event = 'pageview' AND view IS NOT NULL ${where}
-      GROUP BY view`).all(...params);
+      GROUP BY view ORDER BY sessions DESC, view`).all(...params),
 
-    const deptInterest = await db.prepare(`
+      db.prepare(`
       SELECT meta->>'dept' AS dept, COUNT(*)::int AS count
       FROM analytics_events WHERE event = 'dept_detail' ${where}
-      GROUP BY dept ORDER BY count DESC LIMIT 10`).all(...params);
+      GROUP BY dept ORDER BY count DESC LIMIT 10`).all(...params),
 
-    // 최종 전환 실측치 — responses 테이블(submitted_at 기준 동일 기간)
-    const respWhere = where.split('occurred_at').join('submitted_at');
-    const actual = await db.prepare(
-      `SELECT COUNT(*)::int AS c FROM responses WHERE survey_id = 1 ${respWhere}`
-    ).get(...params);
+      // 최종 전환 실측치 — responses 테이블(submitted_at 기준 동일 기간)
+      db.prepare(
+        `SELECT COUNT(*)::int AS c FROM responses WHERE survey_id = 1 ${resp.where}`
+      ).get(...resp.params),
+    ]);
 
     res.json({
       funnel,

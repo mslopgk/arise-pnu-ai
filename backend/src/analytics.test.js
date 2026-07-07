@@ -67,3 +67,10 @@ test('timeRange: KST 날짜 경계(to 포함), 형식 불량 무시', () => {
   assert.deepEqual(r.params, ['2026-07-09T00:00:00+09:00', '2026-07-17T00:00:00+09:00']);
   assert.deepEqual(timeRange({ from: 'DROP TABLE' }), { where: '', params: [] });
 });
+
+test('timeRange: 달력상 불가능한 날짜 무시(크래시·롤오버 없음), 컬럼 파라미터 지원', () => {
+  assert.deepEqual(timeRange({ to: '2026-13-01' }), { where: '', params: [] });
+  assert.deepEqual(timeRange({ from: '2026-02-30' }), { where: '', params: [] });
+  const r = timeRange({ from: '2026-07-09' }, 'submitted_at');
+  assert.equal(r.where, 'AND submitted_at >= ?::timestamptz');
+});
