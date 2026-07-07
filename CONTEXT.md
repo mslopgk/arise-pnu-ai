@@ -48,6 +48,9 @@
 ### 장학 해당 여부 확인 (scholarship eligibility check)
 [[자격-자가진단]]과 **별개의 독립 페이지**. **학부생 예상 관점** — 아직 학부생인 사용자가 "연계과정에 선발·진학하면 받게 될 장학"을 미리 확인한다. 4종 전부를 다루며, 학부생이 아는 정보(희망 트랙·계열/학부 소속·졸업 예정 학기·학사 평점·BK21 참여학과 여부 등)로 각 장학의 해당 여부를 **예상** 판정한다. 서류심사·자비등록·심사학기 평점처럼 자가진단으로 확정 불가한 조건은 "조건부/심사 필요"로 안내한다. 클라이언트 사이드 계산만 하며 입력값은 저장·전송하지 않는다.
 
+### 방문 분석 (visitor analytics)
+퍼널·페이지뷰·스크롤 깊이·이탈률을 수집하는 퍼스트파티 익명 분석 ([`docs/adr/0007`](./docs/adr/0007-first-party-anonymous-analytics.md)). 트래커 `frontend/public/track.js` → `POST /api/track` → PostgreSQL `analytics_events` → admin "방문 분석" 탭(`/api/admin/analytics/*`). 방문자 식별은 localStorage 랜덤 UUID만 — **IP·이메일·계산기 입력값은 수집하지 않는다.** 페이지 키는 정규 이름(`gateway`·`admission`·`eligibility`·`scholarship` 등)으로 React 마이그레이션과 무관하게 유지되며, 마이그레이션 시 track.js 태그·`window.pnugTrack` 훅을 함께 이식해야 한다.
+
 ### 신청자 (applicant)
 - 인증된 사용자 중 신청서를 제출했거나 제출 자격이 있는 자
 - 도메인 게이트(`@pusan.ac.kr`)를 통과한 모든 학생
