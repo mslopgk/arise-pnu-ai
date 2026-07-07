@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import DeptDirectoryAdmin from './DeptDirectoryAdmin.jsx';
 import DeptChangeRequestsAdmin from './DeptChangeRequestsAdmin.jsx';
+import AdminAnalytics from './AdminAnalytics.jsx';
 
 const COLORS = ['#3672b8', '#5d9cd5', '#88c1eb', '#b8d9f2', '#dcebf8'];
 
@@ -77,12 +78,14 @@ export default function AdminDashboard() {
 
       <div style={styles.tabs}>
         <button onClick={() => setView('stats')} style={{ ...styles.tab, ...(view === 'stats' ? styles.tabActive : {}) }}>신청 현황</button>
+        <button onClick={() => setView('analytics')} style={{ ...styles.tab, ...(view === 'analytics' ? styles.tabActive : {}) }}>방문 분석</button>
         <button onClick={() => setView('directory')} style={{ ...styles.tab, ...(view === 'directory' ? styles.tabActive : {}) }}>학과 디렉터리 관리</button>
         <button onClick={() => setView('requests')} style={{ ...styles.tab, ...(view === 'requests' ? styles.tabActive : {}) }}>
           학과 수정 신청{chreqPending > 0 && <span style={styles.tabBadge}>{chreqPending}</span>}
         </button>
       </div>
 
+      {view === 'analytics' && <AdminAnalytics />}
       {view === 'directory' && <DeptDirectoryAdmin />}
       {view === 'requests' && <DeptChangeRequestsAdmin onPendingChange={setChreqPending} />}
 
