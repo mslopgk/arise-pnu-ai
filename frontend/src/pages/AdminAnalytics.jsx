@@ -121,6 +121,7 @@ export default function AdminAnalytics() {
             <div style={st.funnelNote}>
               OAuth 로그인 이동 {funnel.funnel.oauth_redirect} 세션 · 자격/장학 계산기 사용 {funnel.funnel.calc_run} 세션.
               신청 클릭 후 로그인 화면에서 돌아오지 않은 세션은 "신청 클릭"과 "신청 모달 오픈" 사이의 이탈로 나타납니다.
+              (서버 로그에서 백필한 2026.6.18~7.7 세션은 클릭 계측이 없어 퍼널 계산에서 제외 — 페이지별 표·일별 추이에는 포함)
             </div>
           </>
         )}

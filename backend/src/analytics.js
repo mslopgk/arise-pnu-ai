@@ -219,7 +219,8 @@ adminAnalyticsRouter.get('/funnel', requireAdmin, async (req, res) => {
         COUNT(DISTINCT session_id) FILTER (WHERE event = 'oauth_redirect')::int AS oauth_redirect,
         COUNT(DISTINCT session_id) FILTER (WHERE event = 'apply_modal_open')::int AS modal_open,
         COUNT(DISTINCT session_id) FILTER (WHERE event = 'apply_submit' AND meta->>'status' = 'success')::int AS submit_success
-      FROM analytics_events WHERE TRUE ${where}`).get(...params),
+      FROM analytics_events
+      WHERE (meta->>'bf') IS NULL ${where}`).get(...params), // 로그 백필 세션은 클릭 계측이 없어 퍼널에서 제외
 
       db.prepare(`
       SELECT view, COUNT(DISTINCT session_id)::int AS sessions, COUNT(*)::int AS pageviews
