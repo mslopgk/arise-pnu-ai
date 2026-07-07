@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 
 // Pages & Auth
 import Gateway from './pages/Gateway.jsx';
@@ -22,9 +22,20 @@ function RedirectToAdmission() {
   return <div className="container">이동 중...</div>;
 }
 
+// SPA 라우트 변경 → 방문 분석 pageview (track.js가 페이지 키 정규화·중복 제거)
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    if (window.pnugTrack) window.pnugTrack('pageview', {});
+  }, [location.pathname]);
+  return null;
+}
+
 export default function App() {
   return (
-    <Routes>
+    <>
+      <RouteTracker />
+      <Routes>
       {/* Gateway */}
       <Route path="/" element={<Gateway />} />
 
@@ -49,6 +60,7 @@ export default function App() {
 
       {/* Fallback to gateway */}
       <Route path="*" element={<Gateway />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
