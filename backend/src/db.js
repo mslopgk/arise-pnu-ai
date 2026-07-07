@@ -232,6 +232,25 @@ export async function initSchema() {
     -- 기존 설치 호환(컬럼 추가)
     ALTER TABLE dir_change_requests ADD COLUMN IF NOT EXISTS action TEXT NOT NULL DEFAULT 'upsert';
     ALTER TABLE dir_change_requests ADD COLUMN IF NOT EXISTS note TEXT;
+
+    -- === 방문 분석 (퍼널·페이지뷰·스크롤·이탈) — ADR 0007, 익명·IP 미저장 ===
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id BIGSERIAL PRIMARY KEY,
+      occurred_at timestamptz NOT NULL DEFAULT now(),
+      visitor_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      event TEXT NOT NULL,
+      page TEXT NOT NULL,
+      view TEXT,
+      referrer TEXT,
+      scroll_pct INTEGER,
+      dwell_ms INTEGER,
+      device TEXT,
+      meta jsonb
+    );
+    CREATE INDEX IF NOT EXISTS idx_ae_occurred ON analytics_events(occurred_at);
+    CREATE INDEX IF NOT EXISTS idx_ae_page ON analytics_events(page, event, occurred_at);
+    CREATE INDEX IF NOT EXISTS idx_ae_session ON analytics_events(session_id, occurred_at);
   `);
 }
 
