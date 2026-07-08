@@ -28,3 +28,6 @@ caddy/config/
 # shadcn CLI 루트 툴링 (앱 아님)
 /package.json
 /package-lock.json
+
+# 루트에 붙여넣은 임시 스크린샷
+/image.png
