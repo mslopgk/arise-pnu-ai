@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { Kpi, KpiRow, Section, Funnel, CovChip, Segment, Meter, Rank, CellBar, Empty } from './adminUi.jsx';
+import './admin.css';
 
 const PAGE_LABELS = {
   gateway: '게이트웨이 (/)', admission: '연계과정 안내', eligibility: '자격 자가진단',
@@ -17,14 +19,22 @@ const FUNNEL_STEPS = [
   ['submit_success', '제출 완료'],
 ];
 const APPLY_WINDOW = { from: '2026-07-09', to: '2026-07-16' }; // 접수기간
-const BACKFILL_FROM = '2026.6.18'; // 서버 로그 복원 시작일
-const LIVE_FROM = '2026.7.7';      // 방문 분석 기능 도입(실측 시작)일
+const BACKFILL_FROM = '6.18'; // 서버 로그 복원 시작일
+const LIVE_FROM = '7.7';      // 방문 분석 기능 도입(실측 시작)일
 const RANGES = [
   { key: 'today', label: '오늘', query: () => ({ from: kstToday(), to: kstToday() }) },
   { key: '7d', label: '최근 7일', query: () => ({ from: kstToday(-6), to: kstToday() }) },
   { key: 'window', label: `접수기간 ${APPLY_WINDOW.from.slice(5).replace('-', '.')}~${APPLY_WINDOW.to.slice(5).replace('-', '.')}`, query: () => APPLY_WINDOW },
   { key: 'all', label: '전체', query: () => ({}) },
 ];
+
+// recharts 는 CSS 클래스로 색을 줄 수 없어 계약 토큰 값을 그대로 상수화(불가피).
+const C_DATA = '#1d4ed8';     // --adm-data
+const C_INK = '#15161c';      // --adm-ink
+const C_INK2 = '#55565b';     // --adm-ink2
+const C_INK3 = '#8a8b90';     // --adm-ink3
+const C_HAIR = '#e5e1d7';     // --adm-hairline
+const MONO = '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace';
 
 function kstToday(offsetDays = 0) {
   const d = new Date(Date.now() + 9 * 3600 * 1000);
@@ -40,6 +50,7 @@ function fmtDwell(ms) {
   const s = Math.round(ms / 1000);
   return s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`;
 }
+const nf = (n) => (n ?? 0).toLocaleString('en-US');
 
 export default function AdminAnalytics() {
   const [range, setRange] = useState('7d');
@@ -70,99 +81,70 @@ export default function AdminAnalytics() {
   }, [range]);
 
   const rangeRow = (
-    <div style={st.rangeRow}>
-      {RANGES.map((r) => (
-        <button key={r.key} onClick={() => setRange(r.key)}
-          style={{ ...st.rangeBtn, ...(range === r.key ? st.rangeBtnActive : {}) }}>{r.label}</button>
-      ))}
+    <div className="adm-viewbar">
+      <Segment options={RANGES} value={range} onChange={setRange} ariaLabel="기간 선택" />
+      <span className="adm-viewmeta">
+        <CovChip kind="restored">{BACKFILL_FROM}~ 로그 복원</CovChip>{' '}
+        <CovChip kind="measured">{LIVE_FROM}~ 실측</CovChip>
+      </span>
     </div>
   );
 
-  if (error) return <>{rangeRow}<div style={st.error}>{error}</div></>;
-  if (!overview || !funnel) return <>{rangeRow}<div style={{ padding: 24, color: '#888' }}>로딩...</div></>;
+  if (error) return <>{rangeRow}<div className="adm-error">{error}</div></>;
+  if (!overview || !funnel) return <>{rangeRow}<div className="adm-loading">로딩...</div></>;
 
   const steps = FUNNEL_STEPS.map(([k, label]) => ({ key: k, label, count: funnel.funnel[k] ?? 0 }));
-  const maxStep = Math.max(1, ...steps.map((s) => s.count));
+  const deptMax = Math.max(1, ...funnel.dept_interest.map((x) => x.count));
+
+  const funnelNote = (
+    <>
+      OAuth 로그인 이동 <b className="adm-num">{funnel.funnel.oauth_redirect}</b> 세션 ·
+      자격/장학 계산기 사용 <b className="adm-num">{funnel.funnel.calc_run}</b> 세션.
+      신청 클릭 후 로그인 화면에서 돌아오지 않은 세션은 "신청 클릭 → 신청 모달 오픈" 구간의 이탈로 집계됩니다.
+    </>
+  );
 
   return (
     <>
       {rangeRow}
 
-      <div style={st.notice}>
-        <div>⚠ <b>페이지뷰 · 순방문자 · 세션 · 일별 추이</b> — {BACKFILL_FROM}부터 (도입 전 구간은 서버 로그에서 복원)</div>
-        <div style={{ marginTop: 4 }}>⚠ <b>나머지 지표</b>(스크롤 깊이 · 체류 · 이탈률 · 퍼널 · 뷰 도달 · 학과 조회 · 계산기) — 기능 도입일 <b>{LIVE_FROM}부터</b> 실측</div>
-      </div>
+      <KpiRow>
+        <Kpi label="페이지뷰" value={nf(overview.totals.pageviews)} chip={<CovChip kind="restored">{BACKFILL_FROM}~ 복원</CovChip>} />
+        <Kpi label="순방문자" value={nf(overview.totals.visitors)} chip={<CovChip kind="restored">{BACKFILL_FROM}~ 복원</CovChip>} />
+        <Kpi label="세션" value={nf(overview.totals.sessions)} chip={<CovChip kind="restored">{BACKFILL_FROM}~ 복원</CovChip>} />
+        <Kpi label="제출 완료" value={nf(funnel.responses_actual)} chip={<CovChip kind="ok">DB 실측</CovChip>} delta="● DB 확정치" deltaTone="ok" />
+      </KpiRow>
 
-      <div style={st.grid4}>
-        <Stat label="페이지뷰" value={overview.totals.pageviews} />
-        <Stat label="순방문자" value={overview.totals.visitors} />
-        <Stat label="세션" value={overview.totals.sessions} />
-        <Stat label="제출 완료 (DB 실측)" value={funnel.responses_actual} />
-      </div>
-
-      <Section title="신청 퍼널 — 세션 기준">
-        {overview.totals.sessions === 0 ? <Empty /> : (
-          <>
-            <div>
-              {steps.map((s, i) => {
-                const prev = i > 0 ? steps[i - 1].count : null;
-                const conv = prev > 0 ? Math.round((s.count / prev) * 100) : null;
-                return (
-                  <div key={s.key}>
-                    {i > 0 && (
-                      <div style={st.funnelConn}>
-                        ↓ {conv == null ? '—' : `${conv}%`}
-                      </div>
-                    )}
-                    <div style={st.funnelRow}>
-                      <span style={st.funnelLabel}>{s.label}</span>
-                      <div style={st.funnelTrack}>
-                        <div style={{ ...st.funnelBar, width: `${Math.max(2, (s.count / maxStep) * 100)}%` }} />
-                        <span style={st.funnelCount}>{s.count}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={st.funnelNote}>
-              OAuth 로그인 이동 {funnel.funnel.oauth_redirect} 세션 · 자격/장학 계산기 사용 {funnel.funnel.calc_run} 세션.
-              신청 클릭 후 로그인 화면에서 돌아오지 않은 세션은 "신청 클릭"과 "신청 모달 오픈" 사이의 이탈로 나타납니다.
-            </div>
-          </>
-        )}
+      <Section title="신청 퍼널 — 세션 기준" chips={<CovChip kind="measured">{LIVE_FROM}~ 실측</CovChip>}>
+        {overview.totals.sessions === 0
+          ? <Empty>선택한 기간에 세션이 없습니다.</Empty>
+          : <Funnel steps={steps} note={funnelNote} />}
       </Section>
 
-      <Section title="페이지별 방문 · 스크롤 · 이탈">
+      <Section title="페이지별 방문 · 체류 · 이탈"
+               chips={<><CovChip kind="restored">방문 {BACKFILL_FROM}~</CovChip> <CovChip kind="measured">체류·스크롤·이탈 {LIVE_FROM}~</CovChip></>}>
         {overview.pages.length === 0 ? <Empty /> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={st.table}>
+          <div className="adm-tablewrap">
+            <table className="adm-table">
               <thead><tr>
-                <th style={st.th}>페이지</th>
-                <th style={st.thNum}>뷰</th>
-                <th style={st.thNum}>순방문자</th>
-                <th style={st.thNum}>세션</th>
-                <th style={st.thNum}>평균 체류</th>
-                <th style={{ ...st.th, minWidth: 140 }}>평균 스크롤 도달</th>
-                <th style={st.thNum}>이탈률</th>
+                <th>페이지</th>
+                <th className="num">뷰</th>
+                <th className="num">순방문자</th>
+                <th className="num">세션</th>
+                <th className="num">평균 체류</th>
+                <th>평균 스크롤 도달</th>
+                <th className="num">이탈률</th>
               </tr></thead>
               <tbody>
                 {overview.pages.map((p) => (
-                  <tr key={p.page} style={{ borderTop: '1px solid #2a2d38' }}>
-                    <td style={st.td}>{PAGE_LABELS[p.page] || p.page}</td>
-                    <td style={st.tdNum}>{p.pageviews}</td>
-                    <td style={st.tdNum}>{p.visitors}</td>
-                    <td style={st.tdNum}>{p.sessions}</td>
-                    <td style={st.tdNum}>{fmtDwell(p.avg_dwell_ms)}</td>
-                    <td style={st.td}>
-                      {p.avg_scroll_pct == null ? '—' : (
-                        <span style={st.meterWrap}>
-                          <span style={st.meterTrack}><span style={{ ...st.meterFill, width: `${p.avg_scroll_pct}%` }} /></span>
-                          <span style={st.meterText}>{p.avg_scroll_pct}%</span>
-                        </span>
-                      )}
-                    </td>
-                    <td style={st.tdNum}>{p.exit_rate == null ? '—' : `${p.exit_rate}%`}</td>
+                  <tr key={p.page}>
+                    <td>{PAGE_LABELS[p.page] || p.page}</td>
+                    <td className="num">{nf(p.pageviews)}</td>
+                    <td className="num">{nf(p.visitors)}</td>
+                    <td className="num">{nf(p.sessions)}</td>
+                    <td className="num">{fmtDwell(p.avg_dwell_ms)}</td>
+                    <td><Meter pct={p.avg_scroll_pct} /></td>
+                    <td className="num">{p.exit_rate == null ? '—' : `${p.exit_rate}%`}</td>
                   </tr>
                 ))}
               </tbody>
@@ -171,103 +153,68 @@ export default function AdminAnalytics() {
         )}
       </Section>
 
-      <div style={st.grid2}>
-        <Section title="안내 페이지 내부 뷰 도달 — 세션">
+      <div className="adm-grid2">
+        <Section title="안내 페이지 내부 뷰 도달 — 세션" chips={<CovChip kind="measured">{LIVE_FROM}~ 실측</CovChip>}>
           {funnel.admission_views.length === 0 ? <Empty /> : (
-            <table style={st.table}>
-              <thead><tr><th style={st.th}>뷰</th><th style={st.thNum}>세션</th><th style={st.thNum}>뷰 수</th></tr></thead>
-              <tbody>
-                {funnel.admission_views.map((v) => (
-                  <tr key={v.view} style={{ borderTop: '1px solid #2a2d38' }}>
-                    <td style={st.td}>{VIEW_LABELS[v.view] || v.view}</td>
-                    <td style={st.tdNum}>{v.sessions}</td>
-                    <td style={st.tdNum}>{v.pageviews}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="adm-tablewrap">
+              <table className="adm-table">
+                <thead><tr><th>뷰</th><th className="num">세션</th><th className="num">뷰 수</th></tr></thead>
+                <tbody>
+                  {funnel.admission_views.map((v) => (
+                    <tr key={v.view}>
+                      <td>{VIEW_LABELS[v.view] || v.view}</td>
+                      <td className="num">{nf(v.sessions)}</td>
+                      <td className="num">{nf(v.pageviews)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
 
-        <Section title="학과 상세 조회 Top 10">
+        <Section title="학과 상세 조회 Top 10" chips={<CovChip kind="measured">{LIVE_FROM}~ 실측</CovChip>}>
           {funnel.dept_interest.length === 0 ? <Empty /> : (
-            <table style={st.table}>
-              <thead><tr><th style={st.th}>순위</th><th style={st.th}>학과</th><th style={st.thNum}>조회수</th></tr></thead>
-              <tbody>
-                {funnel.dept_interest.map((d, i) => (
-                  <tr key={d.dept} style={{ borderTop: '1px solid #2a2d38' }}>
-                    <td style={st.td}>{i + 1}</td>
-                    <td style={st.td}>{d.dept}</td>
-                    <td style={st.tdNum}>{d.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="adm-tablewrap">
+              <table className="adm-table">
+                <thead><tr><th>#</th><th>학과</th><th className="num">조회수</th></tr></thead>
+                <tbody>
+                  {funnel.dept_interest.map((d, i) => (
+                    <tr key={d.dept}>
+                      <td><Rank i={i} /></td>
+                      <td>{d.dept}</td>
+                      <td className="num"><CellBar value={d.count} max={deptMax} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
       </div>
 
-      <Section title="일별 추이 — 페이지뷰">
+      <Section title="일별 추이 — 페이지뷰" chips={<CovChip kind="restored">{BACKFILL_FROM}~ 로그 복원</CovChip>}>
         {overview.daily.length === 0 ? <Empty /> : (
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={overview.daily}>
-              <XAxis dataKey="day" stroke="#888" tick={{ fontSize: 11 }} />
-              <YAxis allowDecimals={false} stroke="#888" />
-              <Tooltip contentStyle={{ background: '#1a1d27', border: '1px solid #2a2d38' }} />
-              <Bar dataKey="pageviews" fill="#3672b8" />
+            <BarChart data={overview.daily} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={C_HAIR} />
+              <XAxis dataKey="day" stroke={C_INK3} tickLine={false} axisLine={{ stroke: C_HAIR }}
+                     tick={{ fontSize: 11, fontFamily: MONO, fill: C_INK3 }} />
+              <YAxis allowDecimals={false} stroke={C_INK3} tickLine={false} axisLine={false}
+                     tick={{ fontSize: 11, fontFamily: MONO, fill: C_INK3 }} />
+              <Tooltip cursor={{ fill: 'rgba(29,78,216,0.06)' }}
+                       contentStyle={{ background: '#fff', border: `1px solid ${C_HAIR}`, borderRadius: 4, fontSize: 12, fontFamily: MONO }}
+                       labelStyle={{ color: C_INK2 }} itemStyle={{ color: C_INK }} />
+              <Bar dataKey="pageviews" name="페이지뷰" fill={C_DATA} radius={[4, 4, 0, 0]} maxBarSize={26} />
             </BarChart>
           </ResponsiveContainer>
         )}
       </Section>
 
-      <div style={st.footer}>
-        생성: {new Date(funnel.generated_at).toLocaleString('ko-KR')} · 익명 집계(ADR 0007) — IP·이메일·계산기 입력값은 수집하지 않습니다.
+      <div className="adm-footer">
+        집계 기준 <span className="adm-num">{new Date(funnel.generated_at).toLocaleString('ko-KR')}</span> ·
+        익명 집계(ADR 0007) — IP·이메일·계산기 입력값은 수집하지 않습니다.
       </div>
     </>
   );
 }
-
-function Stat({ label, value }) {
-  return (
-    <div style={st.statCard}>
-      <div style={st.statLabel}>{label}</div>
-      <div style={st.statValue}>{value}</div>
-    </div>
-  );
-}
-function Section({ title, children }) {
-  return <div style={st.section}><h2 style={st.h2}>{title}</h2>{children}</div>;
-}
-function Empty() { return <div style={{ padding: 24, textAlign: 'center', color: '#666' }}>아직 데이터가 없습니다.</div>; }
-
-const st = {
-  error: { background: '#3a1c1c', border: '1px solid #5a2a2a', color: '#ff8a8a', padding: 12, borderRadius: 8, marginBottom: 16 },
-  notice: { background: '#2f2810', border: '1px solid #5a4a1c', color: '#ffd76e', padding: '12px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, lineHeight: 1.7 },
-  rangeRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
-  rangeBtn: { background: 'transparent', color: '#aaa', border: '1px solid #2a2d38', padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
-  rangeBtnActive: { background: '#23262f', color: '#fff', border: '1px solid #3a3d48' },
-  grid4: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 },
-  grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 },
-  statCard: { background: '#16181f', border: '1px solid #2a2d38', borderRadius: 10, padding: '16px 18px' },
-  statLabel: { fontSize: 12, color: '#7a7a82', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 },
-  statValue: { fontWeight: 700, fontSize: 28, color: '#fff' },
-  section: { background: '#16181f', border: '1px solid #2a2d38', borderRadius: 10, padding: '18px 20px', marginBottom: 16 },
-  h2: { fontSize: 14, fontWeight: 600, color: '#bbb', margin: '0 0 12px 0', letterSpacing: '0.05em' },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  th: { textAlign: 'left', padding: '8px 6px', color: '#888', fontSize: 12, fontWeight: 500, borderBottom: '1px solid #2a2d38' },
-  thNum: { textAlign: 'right', padding: '8px 6px', color: '#888', fontSize: 12, fontWeight: 500, borderBottom: '1px solid #2a2d38' },
-  td: { padding: '10px 6px', fontSize: 14 },
-  tdNum: { padding: '10px 6px', fontSize: 14, textAlign: 'right', fontVariantNumeric: 'tabular-nums' },
-  funnelRow: { display: 'flex', alignItems: 'center', gap: 12 },
-  funnelLabel: { width: 150, flexShrink: 0, fontSize: 13, color: '#ccc', textAlign: 'right' },
-  funnelTrack: { flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 },
-  funnelBar: { height: 22, background: 'linear-gradient(90deg, #3672b8, #5d9cd5)', borderRadius: 4, transition: 'width .3s' },
-  funnelCount: { fontSize: 13, fontWeight: 700, color: '#e8e8ea', fontVariantNumeric: 'tabular-nums' },
-  funnelConn: { margin: '2px 0', paddingLeft: 162, fontSize: 11, color: '#7a7a82', fontVariantNumeric: 'tabular-nums' },
-  funnelNote: { marginTop: 14, fontSize: 12, color: '#8a8a92', lineHeight: 1.7 },
-  meterWrap: { display: 'inline-flex', alignItems: 'center', gap: 8 },
-  meterTrack: { display: 'inline-block', width: 90, height: 6, background: '#23262f', borderRadius: 3, overflow: 'hidden' },
-  meterFill: { display: 'block', height: '100%', background: '#5d9cd5', borderRadius: 3 },
-  meterText: { fontSize: 13, fontVariantNumeric: 'tabular-nums' },
-  footer: { marginTop: 8, color: '#5a5a62', fontSize: 12, textAlign: 'right' },
-};
