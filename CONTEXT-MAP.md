@@ -28,6 +28,12 @@
 - **URL**: `/admission-*.html` · `/eligibility.html` · `/admin` · `/login` · `/api/*` · `/auth/*`
 - **글로서리**: [`CONTEXT.md`](./CONTEXT.md) · **결정**: `docs/adr/0001~0005`
 
+## 4) google — PNU × Google AI Ecosystem 페이지
+- **위치**: `frontend/src/variants/google/page.jsx` (+ `google.css`, `AiGuideSection.jsx`, `/google/logos` 정적 자산)
+- **역할**: 게이트웨이 2번 카드에서 진입하는 Google for Education 파트너십 소개 — 비전·파트너십·AI 서비스·교육·연구·참여·글로벌 섹션 + **AI 활용법 가이드**(교육 섹션 아래 진입 카드 → 학습 모달: Workspace/Gemini/NotebookLM 유튜브 강의 + 타임라인. 원본은 외부 제작 단일 HTML을 React 포팅, Jamboard는 서비스 종료로 영상만 유지·앱 링크 제거).
+- **URL**: `/google` (방문 분석 페이지 키 `google`)
+- 별도 CONTEXT.md 없음(콘텐츠 페이지). `frontend/src/variants/bymonolog/`(`/bymonolog*`)도 같은 성격의 변형 콘텐츠 페이지군.
+
 ## 시스템 전역
 - **ADR**: `docs/adr/` (0001~0006). 0006 = 본 통합.
 - **배포**: 프로덕션은 단일 Express(`was`) + nginx(TLS 종단), arise 앱은 `arise-ai.pusan.ac.kr` 1 도메인. 같은 nginx가 부속 기관 사이트(airc/aiedu/aigs + ax* 별칭)도 서브도메인으로 호스팅하나, 이들은 이 모노레포 밖의 별도 정적 사이트다(상세 → [`deploy/DEPLOYMENT.md`](./deploy/DEPLOYMENT.md)).

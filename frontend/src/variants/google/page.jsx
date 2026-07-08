@@ -13,6 +13,7 @@ import {
   Wrench, Flame, Search, Camera, Map, ScanLine, Languages, Headphones,
 } from 'lucide-react';
 import './google.css';
+import AiGuideSection from './AiGuideSection.jsx';
 
 /* ── Logo helper ── */
 const L = '/google/logos/';
@@ -862,6 +863,12 @@ export default function GooglePartnership() {
           </div>
         </div>
       </section>
+
+
+      {/* ================================================================
+          6.5 AI 활용법 가이드 (진입 카드 + 학습 모달)
+      ================================================================ */}
+      <AiGuideSection />
 
 
       {/* ================================================================
