@@ -181,8 +181,6 @@
 }
 .gateway-btn.google {
   background: linear-gradient(140deg, #4285F4 0%, #9b59b6 60%, #EB588E 100%);
-  filter: saturate(.7);
-  cursor: not-allowed;
 }
 .gateway-btn.apply {
   background: linear-gradient(140deg, #003876, #0D9488);
