@@ -71,15 +71,15 @@ export default function Gateway() {
               <p>원하는 메뉴를 선택하세요.</p>
             </li>
 
-            {/* Menu 1: AI대학 (별도 제작 중 — 준비 중 안내 페이지 경유) */}
-            <li>
-              <Link className="gateway-btn aicollege" to="/ai-college">
+            {/* Menu 1: AI대학 — 대표 진입로(가장 크게).
+                React SPA 가 아닌 독립 정적 사이트(public/ai-college/)라 <a> 로 전이한다. */}
+            <li className="feature">
+              <a className="gateway-btn aicollege" href="/ai-college/">
                 <span className="num">01</span>
                 <strong>AI대학</strong>
-                <span className="desc">AI대학 소개 · 학사 안내</span>
-                <span className="tag">준비 중</span>
+                <span className="desc">부산대학교 AI대학 홈페이지</span>
                 <span className="btn-arrow"><span className="arrow-icon"></span></span>
-              </Link>
+              </a>
             </li>
 
             {/* Menu 2: A.U.R.A 마스터플랜 · 데이터룸 */}

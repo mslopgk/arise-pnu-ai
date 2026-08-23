@@ -108,6 +108,16 @@ if (isProd && existsSync(distPath)) {
     console.log(`[prod] s30 static: ${s30Dist} -> /s30`);
   }
   app.use(express.static(distPath, { index: false, extensions: ['html'] }));
+  // AI대학 홈페이지 — React SPA 가 아닌 독립 정적 사이트(frontend/public/ai-college/).
+  // 위 express.static 은 index:false 라 디렉터리 index 를 안 내주므로 명시 라우트가 필요하다.
+  // (SPA fallback 보다 먼저 와야 React 게이트웨이가 가로채지 않는다.)
+  // Express 는 기본이 non-strict 라우팅이라 '/ai-college' 와 '/ai-college/' 가 모두 이 라우트에
+  // 걸린다(별도 '/ai-college/' 라우트를 두면 자기 자신으로 301 무한루프). 그래서 한 핸들러에서
+  // 분기한다 — 슬래시가 없으면 붙여서 리다이렉트해야 상대경로(./styles.css)가 정상 해석된다.
+  app.get('/ai-college', (req, res) => {
+    if (!req.path.endsWith('/')) return res.redirect(301, '/ai-college/');
+    res.sendFile(join(distPath, 'ai-college', 'index.html'));
+  });
   // 루트(/) → React SPA 게이트웨이(index.html)
   app.get('/', (req, res) => res.sendFile(join(distPath, 'index.html')));
   // SPA fallback — /admin, /login 등 React 라우트 (s30·api·auth 제외)
