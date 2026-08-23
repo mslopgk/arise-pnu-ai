@@ -71,10 +71,21 @@ export default function Gateway() {
               <p>원하는 메뉴를 선택하세요.</p>
             </li>
 
-            {/* Menu 1: Direct routing to dark site */}
+            {/* Menu 1: AI대학 (별도 제작 중 — 준비 중 안내 페이지 경유) */}
+            <li>
+              <Link className="gateway-btn aicollege" to="/ai-college">
+                <span className="num">01</span>
+                <strong>AI대학</strong>
+                <span className="desc">AI대학 소개 · 학사 안내</span>
+                <span className="tag">준비 중</span>
+                <span className="btn-arrow"><span className="arrow-icon"></span></span>
+              </Link>
+            </li>
+
+            {/* Menu 2: A.U.R.A 마스터플랜 · 데이터룸 */}
             <li>
               <Link className="gateway-btn aura" to="/bymonolog">
-                <span className="num">01</span>
+                <span className="num">02</span>
                 <span className="org">AI 거점대학육성사업단</span>
                 <strong>A.U.R.A 마스터플랜 및 데이터룸</strong>
                 <span className="desc">부산대학교 AI 대전환 추진 전략 및 성과 분석 데이터룸</span>
@@ -82,25 +93,16 @@ export default function Gateway() {
               </Link>
             </li>
 
-            {/* Menu 2: Google Partnership */}
+            {/* Menu 3: Google Partnership */}
             <li>
               <Link className="gateway-btn google" to="/google">
-                <span className="num">02</span>
+                <span className="num">03</span>
                 <strong>PNU × Google for Education AI 교육혁신 파트너십</strong>
                 <span className="desc">Google과 함께하는 AI 교육·연구 협력</span>
                 <span className="btn-arrow"><span className="arrow-icon"></span></span>
               </Link>
             </li>
 
-            {/* Menu 3: Application process (Direct static page routing) */}
-            <li>
-              <a className="gateway-btn apply" href="/admission-v3-dark.html">
-                <span className="num">03</span>
-                <strong>학·석사 연계과정 신청</strong>
-                <span className="desc">대학원 연계과정 안내 · 학과 디렉터리 · 사전 신청</span>
-                <span className="btn-arrow"><span className="arrow-icon"></span></span>
-              </a>
-            </li>
           </ul>
         </div>
 

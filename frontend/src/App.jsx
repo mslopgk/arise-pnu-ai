@@ -7,6 +7,7 @@ import Login from './pages/Login.jsx';
 import AdminLogin from './pages/AdminLogin.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import DeptEditRequest from './pages/DeptEditRequest.jsx';
+import AiCollege from './pages/AiCollege.jsx';
 
 // Bymonolog variant
 import BymonologPage from './variants/bymonolog/page.jsx';
@@ -48,6 +49,9 @@ export default function App() {
 
       {/* 학과 정보 수정 신청 (학과 관계자 — OAuth 게이트) */}
       <Route path="/dept-edit-request" element={<DeptEditRequest />} />
+
+      {/* AI대학 (별도 제작 중 — 임시 안내 페이지) */}
+      <Route path="/ai-college" element={<AiCollege />} />
 
       {/* Bymonolog routes */}
       <Route path="/bymonolog" element={<BymonologPage />} />

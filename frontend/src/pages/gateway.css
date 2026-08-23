@@ -176,14 +176,16 @@
   border-radius: 999px;
 }
 
+/* 01 AI대학 — PNU 네이비 → 시안 (사이트 준비 중) */
+.gateway-btn.aicollege {
+  background: linear-gradient(140deg, #0B2A55 0%, #12599C 55%, #00A3C4 100%);
+}
+
 .gateway-btn.aura {
   background: linear-gradient(140deg, #2A58C1, #00A651);
 }
 .gateway-btn.google {
   background: linear-gradient(140deg, #4285F4 0%, #9b59b6 60%, #EB588E 100%);
-}
-.gateway-btn.apply {
-  background: linear-gradient(140deg, #003876, #0D9488);
 }
 
 /* 코너 화살표 */
