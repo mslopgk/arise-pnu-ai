@@ -84,6 +84,12 @@ DB 접속: `docker compose exec postgres psql -U arise -d arise`
 - 레포: `deploy/` — compose 참고본·nginx conf(canonical: `arise-ai.conf` + 부속 사이트 `site-*.conf`)·부속 사이트 플레이스홀더(`sites/<name>/`)·검증 스크립트(`server-verify.sh`, `validate-stack.sh`, `smoke.mjs`)·self-signed placeholder 인증서(`certs/`, 로컬 검증용)
 
 ## 변경 이력
+- 2026-08-24: **AI대학 사이트 — 원본(D:/AIweb-site)과 서버 상호 일치화**. 원본과 사본이 겁겁이 서로 다른 수정을 들고 있어 전수 대조 후 양방향으로 붙였다.
+  - **유참핬 사진은 양쪽이 각자 추가해 파일명이 걈렸다** (사본 `442ed1d0.webp` 320×427 12.0KB / 원본 `b6c00d33.webp` 320×426 7.4KB). 원본이 진실의 출처이고 더 가벼워 **원본 파일로 통일**하고 사본본은 삭제. 이로써 `faculty-data.js` 가 원본과 100% 동일해지며 다음 동기화 충돌이 사라진다.
+  - **폰트 로컬 번들·배지 제거는 원본에도 반영**했다(`fonts/` 126개 복사 + index.html·app.js·styles.css 패치, 원본 `dist/` 도 갱신). 이제 사본에만 있는 수정은 없다.
+  - **`.gitattributes` 신설**(루트, `frontend/public/ai-college/** -text`). git 자동 줄바꿈 변환이 개입하면 체크아웃 때 CRLF 로 바뀌어 원본과 바이트가 어긋난다(이번에 app.js 74406B vs 73983B 로 보이던 것이 전부 이 토인이었다 — 내용은 동일). 이제 바이트 그대로 보관한다.
+  - `sync-ai-college.sh` 멀등하게 수정: 원본이 이미 로컬 폰트 링크를 쓰면 그대로 둔다(이전엔 경고 없는 경우 경고 찍다 cp949 인코딩 오류로 실패했다).
+  - 검증: 서버 라이브 ↔ 원본 index.html·app.js·styles.css·faculty-data.js·fonts/noto-sans-kr.css·사진 전부 md5 일치, 사본↔원본 201개 파일 바이트 전수 일치, 서버 faculty 60장·중복본 삭제 확인. 롤백 태그 `arise-was:bak-20260824-align`.
 - 2026-08-24: **AI대학 교수진 — "대표교수 미지정 · 임시 발기" 배지 제거**. `app.js` 의 대표교수 카드 템플릿에서 `${unit.usesFallback?...}` 배지와 `usesFallback` 계산부를 제거하고, 더 이상 렌더되지 않는 `styles.css` 의 `.faculty-rep-card i` 전용 셀렉토 2개도 정리. AX융합학부(교수 1명, `isRepresentative:false`)가 유일한 해당 추이었다. 전송 2개 파일. 검증: 라이브 app.js·styles.css 에서 배지 문구·usesFallback·전용 CSS 모든 0건, `node --check` 통과, 라이브 AX융합학부 화면에서 배지 사라짐·대표교수 유참핬 정상 표시 확인. 롤백 태그 `arise-was:bak-20260824-nofallbackbadge`.
   - 주의: `app.js`·`styles.css` 도 원본 `D:/AIweb-site` 에서 오는 파일이다. 재동기화 시 배지가 다시 생긴다.
 - 2026-08-24: **AI대학 교수진 — 유참핬 교수 사진 보완**. 60명 중 유일하게 `"image":""` 로 미지정되었던 항목. 도시공학과 교수진 페이지(urban.pusan.ac.kr/urban/4828/subview.do)에서 원본 PNG(354×472)를 확보해 기존 사진 규겝(폭 320px WebP, 평굠 10KB)에 맞춰 320×427 WebP 12KB 로 변환 → `assets/faculty/442ed1d0.webp`. 변환은 Chrome canvas WebP 인코더를 사용(이미지 라이밌러리 무추가). 전송 2개 파일.

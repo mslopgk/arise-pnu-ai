@@ -1,0 +1,5 @@
+# AI대학 홈페이지 사본(frontend/public/ai-college/)은 별도 저장소(D:/AIweb-site)의
+# 파일을 그대로 들여온다. git 의 자동 줄바꿈 변환이 개입하면 체크아웃 때 CRLF 로 바뀌어
+# 원본과 바이트 단위로 어긋나고, 동기화할 때마다 전체 파일이 변경된 것처럼 보인다.
+# 그래서 이 경로만 변환하지 않고 바이트 그대로 보관한다.
+frontend/public/ai-college/** -text

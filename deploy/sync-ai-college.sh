@@ -28,29 +28,37 @@ done
 cp -r "$SRC/assets" "$DST/assets"
 
 # index.html: Google Fonts CDN 링크(preconnect 2줄 + css2 1줄) → 로컬 번들 1줄.
+# 원본이 이미 로컬 번들을 쓰고 있으면 아무것도 하지 않는다(멱등).
 python - "$DST/index.html" <<'PY'
 import io, re, sys
 
 p = sys.argv[1]
-s = io.open(p, encoding='utf-8').read()
+s = io.open(p, encoding='utf-8', newline='').read()
 
+LOCAL = './fonts/noto-sans-kr.css'
 link = (
-    '    <!-- Noto Sans KR 가변 폰트 로컬 번들 — Google Fonts CDN 대신(폐쇄망 대응) -->\n'
+    '    <!-- Noto Sans KR 가변 폰트 로컬 번들 - Google Fonts CDN 대신(폐쇄망 대응) -->\n'
     '    <link rel="stylesheet" href="./fonts/noto-sans-kr.css" />\n'
 )
 
 before = s
-s = re.sub(r'[ \t]*<link rel="preconnect" href="https://fonts\.(googleapis|gstatic)\.com"[^>]*>\n', '', s)
-s = re.sub(r'[ \t]*<link href="https://fonts\.googleapis\.com/css2[^>]*>\n', '', s)
-if s == before:
-    print('  [경고] Google Fonts 링크를 찾지 못했습니다 — 원본 head 구조가 바뀐 듯합니다.')
+s = re.sub(r'[ \t]*<link rel="preconnect" href="https://fonts\.(googleapis|gstatic)\.com"[^>]*>\r?\n', '', s)
+s = re.sub(r'[ \t]*<link href="https://fonts\.googleapis\.com/css2[^>]*>\r?\n', '', s)
+removed = s != before
 
-if './fonts/noto-sans-kr.css' not in s:
+if LOCAL not in s:
     marker = '    <link rel="stylesheet" href="./styles.css'
     i = s.index(marker)
     s = s[:i] + link + s[i:]
+    status = 'CDN link replaced' if removed else 'local link inserted'
+elif removed:
+    status = 'CDN link removed (local link already present)'
+else:
+    status = 'already local - no change'
 
-io.open(p, 'w', encoding='utf-8').write(s)
+if s != before:
+    io.open(p, 'w', encoding='utf-8', newline='').write(s)
+print('  fonts:', status)
 PY
 
 echo
