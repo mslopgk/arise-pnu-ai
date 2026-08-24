@@ -84,6 +84,9 @@ DB 접속: `docker compose exec postgres psql -U arise -d arise`
 - 레포: `deploy/` — compose 참고본·nginx conf(canonical: `arise-ai.conf` + 부속 사이트 `site-*.conf`)·부속 사이트 플레이스홀더(`sites/<name>/`)·검증 스크립트(`server-verify.sh`, `validate-stack.sh`, `smoke.mjs`)·self-signed placeholder 인증서(`certs/`, 로컬 검증용)
 
 ## 변경 이력
+- 2026-08-24: **AI대학 사이트 — 인트로 영상 교안**(원본 22:07). `assets/higgsfield-pnu-particles.mp4` 교체(3.8MB)와 `app.js` 의 `VIDEO_SRC` 에 캐시버스터 `?v=1946` 추가. 전송 2개 파일. 롤백 태그 `arise-was:bak-20260824-video`.
+  - 원본이 지난 번 상호 일치화(폰트 로컬 번들·배지 제거)를 그대로 유지하고 있어 `sync-ai-college.sh` 를 그대로 돌렸다(폰트 단계는 no-change). 사본↔원본 201개 파일 바이트 전수 일치 재확인.
+  - 검증: 라이브 app.js·영상 md5 원본과 일치, `?v=1946` URL 200 video/mp4 3956660B, 인트로 화면 렌더 확인, 콘솔 에러 0건.
 - 2026-08-24: **AI대학 사이트 — 원본(D:/AIweb-site)과 서버 상호 일치화**. 원본과 사본이 겁겁이 서로 다른 수정을 들고 있어 전수 대조 후 양방향으로 붙였다.
   - **유참핬 사진은 양쪽이 각자 추가해 파일명이 걈렸다** (사본 `442ed1d0.webp` 320×427 12.0KB / 원본 `b6c00d33.webp` 320×426 7.4KB). 원본이 진실의 출처이고 더 가벼워 **원본 파일로 통일**하고 사본본은 삭제. 이로써 `faculty-data.js` 가 원본과 100% 동일해지며 다음 동기화 충돌이 사라진다.
   - **폰트 로컬 번들·배지 제거는 원본에도 반영**했다(`fonts/` 126개 복사 + index.html·app.js·styles.css 패치, 원본 `dist/` 도 갱신). 이제 사본에만 있는 수정은 없다.

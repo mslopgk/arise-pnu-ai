@@ -456,7 +456,7 @@ function applyVideoSource(url,isBlob){
 }
 
 async function loadScrubVideo(){
-  const VIDEO_SRC='./assets/higgsfield-pnu-particles.mp4';
+  const VIDEO_SRC='./assets/higgsfield-pnu-particles.mp4?v=1946';
   const POSTER_SRC='./assets/higgsfield-pnu-poster.webp';
   if(reducedMotion.matches){
     if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl='';}
