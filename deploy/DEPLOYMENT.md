@@ -84,6 +84,9 @@ DB 접속: `docker compose exec postgres psql -U arise -d arise`
 - 레포: `deploy/` — compose 참고본·nginx conf(canonical: `arise-ai.conf` + 부속 사이트 `site-*.conf`)·부속 사이트 플레이스홀더(`sites/<name>/`)·검증 스크립트(`server-verify.sh`, `validate-stack.sh`, `smoke.mjs`)·self-signed placeholder 인증서(`certs/`, 로컬 검증용)
 
 ## 변경 이력
+- 2026-08-24: **AI대학 교수진 — 유참핬 교수 사진 보완**. 60명 중 유일하게 `"image":""` 로 미지정되었던 항목. 도시공학과 교수진 페이지(urban.pusan.ac.kr/urban/4828/subview.do)에서 원본 PNG(354×472)를 확보해 기존 사진 규겝(폭 320px WebP, 평굠 10KB)에 맞춰 320×427 WebP 12KB 로 변환 → `assets/faculty/442ed1d0.webp`. 변환은 Chrome canvas WebP 인코더를 사용(이미지 라이밌러리 무추가). 전송 2개 파일.
+  - **주의**: 이 보완은 `frontend/public/ai-college/` 쓸 사본에만 있다. 원본 `D:/AIweb-site` 에는 없으므로 그곳에서 다시 동기화하면 **사진과 faculty-data.js 패치가 다시 사라진다**. 원본에도 반영하거나, sync 스크립트에 보완 단계를 추가해야 한다.
+  - 검증: 사진 200 image/webp 12276B, 라이브 faculty-data.js 에 벼 이므지 0건·교수 60명, 라이브 AX융합학부 화면에서 사진 320×427 렌더 확인·미로드 이므지 0건.
 - 2026-08-24: **AI대학 사이트 소스 갱신 동기화**(원본 19:54) — 교수진 사진 59장(`assets/faculty/`) 신설 + 루트 4개 파일 갱신(쿼리 `?v=20260824-5`). 전송 63개 928KB, 나머지 867개는 서버 이미지와 동일해 전송 생략. 롤백 태그 `arise-was:bak-20260824-facultysync`.
   - **동기화 스크립트 추가**: `deploy/sync-ai-college.sh`. 원본은 Google Fonts CDN 을 쓰므로 단순 복사하면 index.html 의 폰트 로컬 번들 링크가 **매번 되돌리진다**(이번에도 부확인). 스크립트가 복사·링크 치환·CDN 잔류 검사를 한 번에 하고 잔류가 있으면 생다. `fonts/` 는 보존하고 `assets/` 만 갈아끓는다.
   - 검증: 갱신 4개 파일 크기가 로컬 기대값과 일지(app.js 73983B·styles.css 95653B·faculty-data.js 28270B·index.html 3843B), 교수 사진 **59장 전수 200**, 라이브 교수진 화면(`#detail-5-1`) 사진 포함 렌더 확인, 구글 폰트 요청 0건·로컬 woff2 10건, `/`·`/bymonolog`·`/google/`·`/admission-v3-dark.html`·`/health` 200, 콘솔 에러 0건.
