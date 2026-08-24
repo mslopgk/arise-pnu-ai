@@ -84,6 +84,9 @@ DB 접속: `docker compose exec postgres psql -U arise -d arise`
 - 레포: `deploy/` — compose 참고본·nginx conf(canonical: `arise-ai.conf` + 부속 사이트 `site-*.conf`)·부속 사이트 플레이스홀더(`sites/<name>/`)·검증 스크립트(`server-verify.sh`, `validate-stack.sh`, `smoke.mjs`)·self-signed placeholder 인증서(`certs/`, 로컬 검증용)
 
 ## 변경 이력
+- 2026-08-24: **AI대학 사이트 소스 갱신 동기화**(원본 19:54) — 교수진 사진 59장(`assets/faculty/`) 신설 + 루트 4개 파일 갱신(쿼리 `?v=20260824-5`). 전송 63개 928KB, 나머지 867개는 서버 이미지와 동일해 전송 생략. 롤백 태그 `arise-was:bak-20260824-facultysync`.
+  - **동기화 스크립트 추가**: `deploy/sync-ai-college.sh`. 원본은 Google Fonts CDN 을 쓰므로 단순 복사하면 index.html 의 폰트 로컬 번들 링크가 **매번 되돌리진다**(이번에도 부확인). 스크립트가 복사·링크 치환·CDN 잔류 검사를 한 번에 하고 잔류가 있으면 생다. `fonts/` 는 보존하고 `assets/` 만 갈아끓는다.
+  - 검증: 갱신 4개 파일 크기가 로컬 기대값과 일지(app.js 73983B·styles.css 95653B·faculty-data.js 28270B·index.html 3843B), 교수 사진 **59장 전수 200**, 라이브 교수진 화면(`#detail-5-1`) 사진 포함 렌더 확인, 구글 폰트 요청 0건·로컬 woff2 10건, `/`·`/bymonolog`·`/google/`·`/admission-v3-dark.html`·`/health` 200, 콘솔 에러 0건.
 - 2026-08-24: **AI대학 홈페이지 자체 호스팅 + 게이트웨이 01 카드 강조** 라이브 배포. 확정 시안(외부 `pnu-ai-college.netlify.app`, 소스 `D:/AIweb-site`)을 네트리파이 의존 없이 `arise-ai.pusan.ac.kr/ai-college/` 에서 직접 서빙. 빌드 없는 정적 사이트라 `frontend/public/ai-college/` 에 그대로 두고 Vite 가 dist 로 복사한다. 내부 참조가 전부 상대경로·해시 라우팅(`#detail-1-1`)이라 하위 경로 호스팅 안전. 
   - **server.js 라우트 추가**: 기존 `express.static` 이 `index:false` 라 디렉터리 index 를 안 내준다. 또 Express 는 기본이 non-strict 라우팅이라 `/ai-college` 와 `/ai-college/` 가 같은 라우트에 걸려, 둘을 분리해 선언하면 **자기 자신으로 301 무한루프**가 난다(배포 전 로컬 검증에서 발견). 한 핸들러에서 `req.path.endsWith('/')` 로 분기 — 슬래시 없으면 301로 붙여야 상대경로(`./styles.css`)가 정상 해석된다. SPA fallback 보다 앞에 놓을 것.
   - **폰트 로컬 번들**: 사이트가 Google Fonts CDN 에서 Noto Sans KR 을 받던 것을 `@fontsource-variable/noto-sans-kr` 5.3.0 (가변, 124개 서브셋 woff2, 3.8MB)로 교체해 폐쇄망 정책에 맞췄다. 패밀리명을 'Noto Sans KR' 로 맞춰 styles.css 는 무수정. 가변이라 styles.css 가 쓰는 600·650·740·750·900 (CDN 에선 미수신해 합성되던 weight) 도 정상 렌더.

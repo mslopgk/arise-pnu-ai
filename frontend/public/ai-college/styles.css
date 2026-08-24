@@ -865,3 +865,15 @@ body.programs-mode .subnav-menu { background:rgba(8,25,38,.86); border-color:rgb
   .index-overlay { overflow-y:auto; overscroll-behavior:contain; justify-content:flex-start; }
   .index-overlay .footer { margin-top:auto; padding-top:20px; }
 }
+
+/* 학과·기관 공식 홈페이지 링크 */
+.faculty-group-head .unit-home { display:inline-block; margin-top:7px; color:#2f86e8; font-size:12px; font-weight:700; letter-spacing:-.01em; text-decoration:none; }
+.faculty-group-head .unit-home:hover,.faculty-group-head .unit-home:focus-visible { text-decoration:underline; }
+.org-node.has-home { cursor:pointer; }
+.org-node.has-home::after { content:"↗"; position:absolute; top:7px; right:9px; color:#8fd0f7; font-size:10px; line-height:1; opacity:.55; transition:opacity .2s; }
+.org-node.has-home:hover::after { opacity:1; }
+
+/* 교수 사진 (학과 홈페이지 수집분) */
+.faculty-mini-portrait,.faculty-panel-portrait{overflow:hidden}
+.faculty-mini-portrait img,.faculty-panel-portrait img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.faculty-portrait img{object-position:center top}
