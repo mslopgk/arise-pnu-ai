@@ -84,6 +84,8 @@ DB 접속: `docker compose exec postgres psql -U arise -d arise`
 - 레포: `deploy/` — compose 참고본·nginx conf(canonical: `arise-ai.conf` + 부속 사이트 `site-*.conf`)·부속 사이트 플레이스홀더(`sites/<name>/`)·검증 스크립트(`server-verify.sh`, `validate-stack.sh`, `smoke.mjs`)·self-signed placeholder 인증서(`certs/`, 로컬 검증용)
 
 ## 변경 이력
+- 2026-08-24: **AI대학 교수진 — "대표교수 미지정 · 임시 발기" 배지 제거**. `app.js` 의 대표교수 카드 템플릿에서 `${unit.usesFallback?...}` 배지와 `usesFallback` 계산부를 제거하고, 더 이상 렌더되지 않는 `styles.css` 의 `.faculty-rep-card i` 전용 셀렉토 2개도 정리. AX융합학부(교수 1명, `isRepresentative:false`)가 유일한 해당 추이었다. 전송 2개 파일. 검증: 라이브 app.js·styles.css 에서 배지 문구·usesFallback·전용 CSS 모든 0건, `node --check` 통과, 라이브 AX융합학부 화면에서 배지 사라짐·대표교수 유참핬 정상 표시 확인. 롤백 태그 `arise-was:bak-20260824-nofallbackbadge`.
+  - 주의: `app.js`·`styles.css` 도 원본 `D:/AIweb-site` 에서 오는 파일이다. 재동기화 시 배지가 다시 생긴다.
 - 2026-08-24: **AI대학 교수진 — 유참핬 교수 사진 보완**. 60명 중 유일하게 `"image":""` 로 미지정되었던 항목. 도시공학과 교수진 페이지(urban.pusan.ac.kr/urban/4828/subview.do)에서 원본 PNG(354×472)를 확보해 기존 사진 규겝(폭 320px WebP, 평굠 10KB)에 맞춰 320×427 WebP 12KB 로 변환 → `assets/faculty/442ed1d0.webp`. 변환은 Chrome canvas WebP 인코더를 사용(이미지 라이밌러리 무추가). 전송 2개 파일.
   - **주의**: 이 보완은 `frontend/public/ai-college/` 쓸 사본에만 있다. 원본 `D:/AIweb-site` 에는 없으므로 그곳에서 다시 동기화하면 **사진과 faculty-data.js 패치가 다시 사라진다**. 원본에도 반영하거나, sync 스크립트에 보완 단계를 추가해야 한다.
   - 검증: 사진 200 image/webp 12276B, 라이브 faculty-data.js 에 벼 이므지 0건·교수 60명, 라이브 AX융합학부 화면에서 사진 320×427 렌더 확인·미로드 이므지 0건.
