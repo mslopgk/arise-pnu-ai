@@ -88,6 +88,8 @@ DB 접속: `docker compose exec postgres psql -U arise -d arise`
   - 변경 8개: `app.js`(74020B)·`styles.css`(96772B)·`faculty-data.js`(28291B) + 파트너 로고 5장. 나머지 193개는 서버와 동일.
   - 번들: `C:/Users/user/Desktop/ARISE-배포-20260825/`(+ zip). `DEPLOY.cmd` 더블클릭 → 전송 → 서버에서 얕은 레이어 빌드 → `compose up -d`(was만) → 9개 경로 응답 + 3개 파일 md5 대조까지 자동 검증. `CHECK.cmd`(접속만), `ROLLBACK.cmd`(복구). 실행 PC에 도커 불필요. 저장소 사본은 `deploy/oneclick-deploy.sh`·`deploy/oneclick-DEPLOY.cmd`.
   - **번들 작성 시 실제 실행으로 잡은 함정 3건**: ① `printf` 로 배치파일을 쓰면 `in` 의 `` 가 백스페이스로 해석돼 경로가 깨진다(heredoc 사용). ② Git for Windows 는 설치 형태에 따라 `binash.exe` 가 없고 `usrinash.exe` 만 있다(이 PC가 그 경우) — 8개 경로를 명시적으로 탐색. ③ `where bash` 폴백은 WSL 의 `System32ash.exe` 를 먼저 잡는데 경로 규칙이 달라 못 쓴다 — System32·WindowsApps 제외.
+  - **접속 키를 번들에 포함**(`key/id_ed25519`, `key/id_ed25519_new`) — 실행 PC 에서 키 준비 없이 바로 배포된다. 이번 세션의 IP 직접 접속은 기본 키 `id_ed25519` 를 썼고 `~/.ssh/config` 의 `arise` 항목은 `id_ed25519_new` 를 쓰므로, 어느 쪽을 서버가 받는지 확인할 수 없어 둘 다 넣고 순차 시도한다. zip/복사로 권한이 느슨해지면 ssh 가 키를 거부하므로 임시 사본에 600 을 주고 쓴 뒤 지운다(trap). `-F /dev/null` 로 로컬 `~/.ssh/config` 를 무시한다 — config 의 `BindAddress` 는 그 PC 의 Wi-Fi IP 라 다른 PC 에서 그대로 쓰면 접속이 깨진다.
+  - 번들에 개인키가 있으므로 공유 금지. `.gitignore` 에 `key/`·`id_ed25519*`·`id_rsa*`·`*.pem` 추가로 커밋 사고를 막았다. 배포 후 옮긴 PC 에서 폴더 삭제 권장.
   - 한글 `.cmd` 파일명은 코드페이지에 따라 서로를 못 찾으므로 파일명은 ASCII, 본문은 UTF-8 + `chcp 65001`.
   - `index.html` 의 `?v=` 캐시버스터는 이번에 안 올랐지만 무해하다 — `express.static` 에 `maxAge` 가 없어(ETag 만) 브라우저가 매 요청 재검증한다.
 - 2026-08-24: **AI대학 사이트 — 인트로 영상 교안**(원본 22:07). `assets/higgsfield-pnu-particles.mp4` 교체(3.8MB)와 `app.js` 의 `VIDEO_SRC` 에 캐시버스터 `?v=1946` 추가. 전송 2개 파일. 롤백 태그 `arise-was:bak-20260824-video`.
