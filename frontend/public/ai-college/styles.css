@@ -563,7 +563,7 @@ body.org-mode .subnav-menu button:hover { background:rgba(103,184,242,.12); }
   .org-node[data-node="a"],.org-node[data-node="d"],.org-node[data-node="p"],.org-node[data-node="x"] { width:50px; min-height:50px; }
   .org-node[data-node="a"] strong,.org-node[data-node="d"] strong,.org-node[data-node="p"] strong,.org-node[data-node="x"] strong { font-size:19px; }
   .org-node[data-node^="ax-"] { width:72px; min-height:28px; padding:5px; }
-  .org-node[data-node^="ax-"] strong { max-width:64px; overflow:hidden; text-overflow:ellipsis; font-size:8px; }
+  .org-node[data-node^="ax-"] strong { max-width:100%; overflow:visible; text-overflow:clip; white-space:normal; line-height:1.22; font-size:9px; word-break:keep-all; }
   .org-node[data-node^="rail-"] { width:76px; min-height:50px; }
   .org-progress-nav { right:5px; }
   .org-progress-nav button { width:25px; height:25px; font-size:8px; }
@@ -877,3 +877,27 @@ body.programs-mode .subnav-menu { background:rgba(8,25,38,.86); border-color:rgb
 .faculty-mini-portrait,.faculty-panel-portrait{overflow:hidden}
 .faculty-mini-portrait img,.faculty-panel-portrait img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
 .faculty-portrait img{object-position:center top}
+
+/* 검토 반영: 모바일에서 겹침·잘림 해소 (2026-08-25) */
+@media (max-width:800px) {
+  /* 생태계 3원: 지름을 뷰포트에 비례시켜 서로 겹치지 않게 */
+  .ecosystem-active .org-node[data-node="edu"],
+  .ecosystem-active .org-node[data-node="research"],
+  .ecosystem-active .org-node[data-node="infra"] {
+    width:clamp(88px,29vw,124px); min-height:clamp(88px,29vw,124px); padding:8px; }
+  .ecosystem-active .org-node[data-node="edu"] strong,
+  .ecosystem-active .org-node[data-node="research"] strong,
+  .ecosystem-active .org-node[data-node="infra"] strong {
+    font-size:10px; line-height:1.2; white-space:normal; word-break:keep-all; }
+  .ecosystem-active .org-node[data-node="edu"] small,
+  .ecosystem-active .org-node[data-node="research"] small,
+  .ecosystem-active .org-node[data-node="infra"] small {
+    margin-top:4px; font-size:8px; line-height:1.2; white-space:normal; word-break:keep-all; }
+  /* AX 융합전공 pill: 이름이 잘리지 않도록 */
+  .ax-convergence-active .org-node[data-node^="ax-"] { min-height:40px; padding:6px 8px; }
+  /* 학부 노드: 학부명 말줄임 금지 */
+  .org-node[data-node^="unit-"] strong { white-space:normal; word-break:keep-all; overflow:visible; text-overflow:clip; }
+  .org-node[data-node^="unit-"] small { white-space:normal; word-break:keep-all; }
+  /* 성장경로 레일 노드 */
+  .org-node[data-node^="rail-"] strong { white-space:normal; word-break:keep-all; line-height:1.2; }
+}

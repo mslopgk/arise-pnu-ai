@@ -84,6 +84,12 @@ DB 접속: `docker compose exec postgres psql -U arise -d arise`
 - 레포: `deploy/` — compose 참고본·nginx conf(canonical: `arise-ai.conf` + 부속 사이트 `site-*.conf`)·부속 사이트 플레이스홀더(`sites/<name>/`)·검증 스크립트(`server-verify.sh`, `validate-stack.sh`, `smoke.mjs`)·self-signed placeholder 인증서(`certs/`, 로컬 검증용)
 
 ## 변경 이력
+- 2026-08-25: **AI대학 사이트 갱신 — 원클릭 배포 번들로 인계(미배포)**. 원본(D:/AIweb-site 17:13) 동기화·빌드·검증까지 이 PC에서 마쳤으나, 현재 공인 IP(106.101.9.x)가 서버 SSH 화이트리스트에 없어 **배포는 실행하지 않았다**. 화이트리스트 IP를 쓰는 다른 컴퓨터에서 실행할 자체 완결형 번들을 만들어 인계했다.
+  - 변경 8개: `app.js`(74020B)·`styles.css`(96772B)·`faculty-data.js`(28291B) + 파트너 로고 5장. 나머지 193개는 서버와 동일.
+  - 번들: `C:/Users/user/Desktop/ARISE-배포-20260825/`(+ zip). `DEPLOY.cmd` 더블클릭 → 전송 → 서버에서 얕은 레이어 빌드 → `compose up -d`(was만) → 9개 경로 응답 + 3개 파일 md5 대조까지 자동 검증. `CHECK.cmd`(접속만), `ROLLBACK.cmd`(복구). 실행 PC에 도커 불필요. 저장소 사본은 `deploy/oneclick-deploy.sh`·`deploy/oneclick-DEPLOY.cmd`.
+  - **번들 작성 시 실제 실행으로 잡은 함정 3건**: ① `printf` 로 배치파일을 쓰면 `in` 의 `` 가 백스페이스로 해석돼 경로가 깨진다(heredoc 사용). ② Git for Windows 는 설치 형태에 따라 `binash.exe` 가 없고 `usrinash.exe` 만 있다(이 PC가 그 경우) — 8개 경로를 명시적으로 탐색. ③ `where bash` 폴백은 WSL 의 `System32ash.exe` 를 먼저 잡는데 경로 규칙이 달라 못 쓴다 — System32·WindowsApps 제외.
+  - 한글 `.cmd` 파일명은 코드페이지에 따라 서로를 못 찾으므로 파일명은 ASCII, 본문은 UTF-8 + `chcp 65001`.
+  - `index.html` 의 `?v=` 캐시버스터는 이번에 안 올랐지만 무해하다 — `express.static` 에 `maxAge` 가 없어(ETag 만) 브라우저가 매 요청 재검증한다.
 - 2026-08-24: **AI대학 사이트 — 인트로 영상 교안**(원본 22:07). `assets/higgsfield-pnu-particles.mp4` 교체(3.8MB)와 `app.js` 의 `VIDEO_SRC` 에 캐시버스터 `?v=1946` 추가. 전송 2개 파일. 롤백 태그 `arise-was:bak-20260824-video`.
   - 원본이 지난 번 상호 일치화(폰트 로컬 번들·배지 제거)를 그대로 유지하고 있어 `sync-ai-college.sh` 를 그대로 돌렸다(폰트 단계는 no-change). 사본↔원본 201개 파일 바이트 전수 일치 재확인.
   - 검증: 라이브 app.js·영상 md5 원본과 일치, `?v=1946` URL 200 video/mp4 3956660B, 인트로 화면 렌더 확인, 콘솔 에러 0건.
