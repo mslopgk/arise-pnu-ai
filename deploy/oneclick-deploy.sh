@@ -12,8 +12,11 @@ set -uo pipefail
 HOST=164.125.19.178
 PORT=11097
 USER=ubuntu
-REMOTE=~/pnug-deploy/oneclick-20260825
-STACK=~/arise-stack
+# 원격 경로는 반드시 '/' 로 시작하지 않는 상대경로로 둔다(로그인 홈 기준).
+# Git-bash(MSYS)는 인자가 유닉스 절대경로처럼 보이면 Windows 경로로 바꿔버려서
+# '~/pnug-deploy/...' 가 서버에 'C:/...' 로 전달되고 mkdir 이 /c 를 만들려다 실패한다.
+REMOTE=pnug-deploy/oneclick-20260825
+STACK=arise-stack
 IMAGE=arise-was
 BAK=bak-20260825-oneclick
 SITE=https://arise-ai.pusan.ac.kr
