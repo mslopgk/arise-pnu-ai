@@ -31,3 +31,9 @@ caddy/config/
 
 # 루트에 붙여넣은 임시 스크린샷
 /image.png
+
+# 배포 번들의 개인키는 절대 커밋하지 않는다
+key/
+*.pem
+id_ed25519*
+id_rsa*

@@ -176,14 +176,103 @@
   border-radius: 999px;
 }
 
+/* 01 AI대학 — 대표 카드.
+   어중간하게 키우면 빈 면만 남는다. 그래서 작정하고 그래픽으로 채운다:
+   전면 점 격자(부산대 시안들의 도트 모티프) + 오른쪽에 흘러나가는 AI 워드마크
+   + 왼쪽 시안색 액센트 바. 큰 타이포와 그래픽이 공간을 메운다. */
+.gateway-right li.feature .gateway-btn {
+  min-height: 180px;
+  padding: 30px 36px;
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(6, 58, 122, .34),
+              inset 0 0 0 1px rgba(255, 255, 255, .22);
+}
+.gateway-right li.feature .gateway-btn:hover,
+.gateway-right li.feature .gateway-btn:focus-visible {
+  transform: translateY(-5px);
+  box-shadow: 0 30px 68px rgba(6, 58, 122, .42),
+              inset 0 0 0 1px rgba(255, 255, 255, .34);
+}
+.gateway-right li.feature .num {
+  font-size: 14px;
+  opacity: .95;
+  letter-spacing: .18em;
+}
+.gateway-right li.feature strong {
+  font-size: 46px;
+  margin-top: 12px;
+  letter-spacing: -1.8px;
+  line-height: 1;
+}
+.gateway-right li.feature .desc {
+  font-size: 15px;
+  font-weight: 500;
+  opacity: .92;
+  margin-top: 12px;
+}
+
+/* 02·03 보다 밝게 — 밝은 배경에서 어두운 카드는 뒤로 물러나므로 */
+.gateway-btn.aicollege {
+  background:
+    linear-gradient(97deg, #35E0D2 0 5px, transparent 5px),
+    linear-gradient(134deg, #063A7A 0%, #0D6CC0 54%, #1B9FD4 100%);
+}
+/* 전면 점 격자 */
+.gateway-btn.aicollege::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, .62) 1px, transparent 1.5px);
+  background-size: 12px 12px;
+  opacity: .34;
+  -webkit-mask-image: linear-gradient(104deg, transparent 18%, #000 88%);
+  mask-image: linear-gradient(104deg, transparent 18%, #000 88%);
+  pointer-events: none;
+}
+/* 오른쪽으로 흘러나가는 AI 워드마크 */
+.gateway-btn.aicollege::after {
+  content: 'AI';
+  position: absolute;
+  z-index: 0;
+  right: -6px;
+  top: -30px;
+  font-size: 152px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -10px;
+  color: rgba(255, 255, 255, .15);
+  pointer-events: none;
+  user-select: none;
+}
+/* 텍스트만 그래픽 위로 올린다. .btn-arrow 는 absolute 배치라
+   position 을 건드리면 안 되므로 z-index 만 준다(그래서 `> *` 를 쓰지 않음). */
+.gateway-btn.aicollege > .num,
+.gateway-btn.aicollege > .org,
+.gateway-btn.aicollege > strong,
+.gateway-btn.aicollege > .desc { position: relative; z-index: 1; }
+.gateway-btn.aicollege > .btn-arrow { z-index: 2; }
+
+/* 02·03 — 대표 카드에 자리를 내준다. 한 단 작게. */
+.gateway-right li:not(.feature) .gateway-btn {
+  min-height: 96px;
+  padding: 20px 26px;
+  box-shadow: 0 6px 18px rgba(0, 40, 120, .10);
+}
+.gateway-right li:not(.feature) .gateway-btn:hover,
+.gateway-right li:not(.feature) .gateway-btn:focus-visible {
+  box-shadow: 0 14px 34px rgba(0, 40, 120, .18);
+}
+.gateway-btn.aura strong,
+.gateway-btn.google strong { font-size: 19px; }
+.gateway-right li:not(.feature) .org { font-size: 12.5px; opacity: .88; }
+.gateway-right li:not(.feature) .desc { font-size: 12.5px; opacity: .82; margin-top: 5px; }
+
 .gateway-btn.aura {
   background: linear-gradient(140deg, #2A58C1, #00A651);
 }
 .gateway-btn.google {
   background: linear-gradient(140deg, #4285F4 0%, #9b59b6 60%, #EB588E 100%);
-}
-.gateway-btn.apply {
-  background: linear-gradient(140deg, #003876, #0D9488);
 }
 
 /* 코너 화살표 */
@@ -242,6 +331,10 @@ footer {
   .gateway-btn strong {
     font-size: 20px;
   }
+  .gateway-right li.feature .gateway-btn { min-height: 158px; padding: 26px 30px; }
+  .gateway-right li.feature strong { font-size: 40px; }
+  .gateway-right li.feature .desc { font-size: 14.5px; }
+  .gateway-right li:not(.feature) .gateway-btn { min-height: 88px; padding: 18px 22px; }
 }
 
 @media (max-width: 900px) {
@@ -270,6 +363,10 @@ footer {
   .gateway-btn strong {
     font-size: 19px;
   }
+  .gateway-right li.feature .gateway-btn { min-height: 150px; padding: 26px 26px; }
+  .gateway-right li.feature strong { font-size: 36px; }
+  .gateway-right li.feature .desc { font-size: 14px; }
+  .gateway-right li:not(.feature) .gateway-btn { min-height: auto; padding: 17px 22px; }
   .gateway-btn .desc {
     max-width: 100%;
   }
@@ -465,3 +562,4 @@ footer {
     grid-template-columns: 1fr;
   }
 }
+
